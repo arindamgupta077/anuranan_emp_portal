@@ -9,9 +9,11 @@ export const metadata: Metadata = {
   description: 'Employee management portal for Anuranan Bengali Recitation Training Institute',
   manifest: '/manifest.json',
   appleWebApp: {
-    capable: true,
     statusBarStyle: 'default',
     title: 'Anuranan Portal',
+  },
+  other: {
+    'mobile-web-app-capable': 'yes',
   },
 }
 
