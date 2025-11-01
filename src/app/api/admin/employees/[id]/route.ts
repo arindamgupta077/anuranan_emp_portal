@@ -38,11 +38,18 @@ export async function PATCH(
     }
 
     const body = await request.json()
-    const { is_active } = body
+    const { is_active, full_name, role_id } = body
+
+    // Build update object with only provided fields
+    const updateData: any = {}
+    if (is_active !== undefined) updateData.is_active = is_active
+    if (full_name) updateData.full_name = full_name
+    if (role_id) updateData.role_id = role_id
+    updateData.updated_at = new Date().toISOString()
 
     const { data, error } = await supabase
       .from('users')
-      .update({ is_active })
+      .update(updateData)
       .eq('id', params.id)
       .select()
       .single()

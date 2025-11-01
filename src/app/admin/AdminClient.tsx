@@ -59,10 +59,16 @@ export default function AdminClient({ employees, roles, recurringTasks }: Props)
 
   // Employee management state
   const [showAddEmployeeModal, setShowAddEmployeeModal] = useState(false)
+  const [showEditEmployeeModal, setShowEditEmployeeModal] = useState(false)
+  const [editingEmployee, setEditingEmployee] = useState<User | null>(null)
   const [employeeForm, setEmployeeForm] = useState({
     full_name: '',
     email: '',
     password: '',
+    role_id: '',
+  })
+  const [editForm, setEditForm] = useState({
+    full_name: '',
     role_id: '',
   })
 
@@ -109,6 +115,38 @@ export default function AdminClient({ employees, roles, recurringTasks }: Props)
       router.refresh()
     } catch (error: any) {
       showToast('error', error.message || 'Failed to add employee')
+    }
+  }
+
+  const handleOpenEditModal = (employee: User) => {
+    setEditingEmployee(employee)
+    setEditForm({
+      full_name: employee.full_name,
+      role_id: employee.role_id,
+    })
+    setShowEditEmployeeModal(true)
+  }
+
+  const handleEditEmployee = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!editingEmployee) return
+
+    try {
+      const res = await fetch(`/api/admin/employees/${editingEmployee.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editForm),
+      })
+
+      if (!res.ok) throw new Error('Failed to update employee')
+
+      showToast('success', 'Employee updated successfully')
+      setShowEditEmployeeModal(false)
+      setEditingEmployee(null)
+      setEditForm({ full_name: '', role_id: '' })
+      router.refresh()
+    } catch (error) {
+      showToast('error', 'Failed to update employee')
     }
   }
 
@@ -316,6 +354,13 @@ export default function AdminClient({ employees, roles, recurringTasks }: Props)
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
                         <div className="flex gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleOpenEditModal(employee)}
+                          >
+                            Edit
+                          </Button>
                           <Button
                             variant="ghost"
                             size="sm"
@@ -675,6 +720,55 @@ export default function AdminClient({ employees, roles, recurringTasks }: Props)
               Cancel
             </Button>
             <Button type="submit">Create Recurring Task</Button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Edit Employee Modal */}
+      <Modal
+        isOpen={showEditEmployeeModal}
+        onClose={() => {
+          setShowEditEmployeeModal(false)
+          setEditingEmployee(null)
+          setEditForm({ full_name: '', role_id: '' })
+        }}
+        title="Edit Employee"
+      >
+        <form onSubmit={handleEditEmployee} className="space-y-4">
+          <Input
+            label="Full Name"
+            value={editForm.full_name}
+            onChange={(e) => setEditForm({ ...editForm, full_name: e.target.value })}
+            required
+          />
+
+          <Select
+            label="Role"
+            value={editForm.role_id}
+            onChange={(e) => setEditForm({ ...editForm, role_id: e.target.value })}
+            options={[
+              { value: '', label: 'Select Role' },
+              ...roles.map((role) => ({
+                value: role.id,
+                label: role.name,
+              })),
+            ]}
+            required
+          />
+
+          <div className="flex justify-end space-x-3 mt-6">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => {
+                setShowEditEmployeeModal(false)
+                setEditingEmployee(null)
+                setEditForm({ full_name: '', role_id: '' })
+              }}
+            >
+              Cancel
+            </Button>
+            <Button type="submit">Update Employee</Button>
           </div>
         </form>
       </Modal>
