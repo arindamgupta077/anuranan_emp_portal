@@ -25,7 +25,7 @@ const nextConfig = {
     optimizePackageImports: ['lucide-react', 'date-fns'],
   },
   
-  // Enable PWA support and caching headers
+  // Enable PWA support and security headers
   async headers() {
     return [
       {
@@ -37,6 +37,25 @@ const nextConfig = {
           },
         ],
       },
+      // Prevent caching of authenticated routes
+      {
+        source: '/(dashboard|admin|tasks|self-tasks|leaves|profile|reports)/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'private, no-cache, no-store, max-age=0, must-revalidate'
+          },
+          {
+            key: 'Pragma',
+            value: 'no-cache'
+          },
+          {
+            key: 'Expires',
+            value: '0'
+          },
+        ],
+      },
+      // Security headers for all other pages
       {
         source: '/:path*',
         headers: [
@@ -51,10 +70,6 @@ const nextConfig = {
           {
             key: 'X-Content-Type-Options',
             value: 'nosniff'
-          },
-          {
-            key: 'Cache-Control',
-            value: 'public, max-age=300, s-maxage=600, stale-while-revalidate=900'
           },
         ],
       },

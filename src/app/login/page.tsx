@@ -20,6 +20,12 @@ export default function LoginPage() {
     setIsLoading(true)
 
     try {
+      // First, ensure any existing session is cleared
+      await supabase.auth.signOut()
+      
+      // Small delay to ensure session is cleared
+      await new Promise(resolve => setTimeout(resolve, 100))
+      
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -32,31 +38,38 @@ export default function LoginPage() {
       }
 
       if (data.user) {
-        console.log('Login successful, user:', data.user.id)
+        console.log('Login successful, user ID:', data.user.id)
+        console.log('User email:', data.user.email)
         
         // Check if user exists in database
         const { data: dbUser, error: dbError } = await supabase
           .from('users')
-          .select('*')
+          .select('id, full_name, email, role_id, roles(name)')
           .eq('id', data.user.id)
           .single()
 
         if (dbError || !dbUser) {
+          console.error('Database user lookup error:', dbError)
+          await supabase.auth.signOut()
           setError('User not found in database. Please contact your administrator to set up your account.')
           setIsLoading(false)
           return
         }
 
-        console.log('Database user found:', dbUser.full_name)
+        console.log('Database user found:', dbUser.full_name, 'Role ID:', dbUser.role_id)
         
-        // Refresh to update auth state, then navigate
-        router.refresh()
-        // Use window.location for a full page reload to ensure auth state is updated
+        // Clear any cached data
+        if (typeof window !== 'undefined') {
+          sessionStorage.clear()
+          localStorage.removeItem('supabase.auth.token')
+        }
+        
+        // Use window.location for a full page reload to ensure fresh auth state
         window.location.href = '/dashboard'
       }
     } catch (err) {
       console.error('Login error:', err)
-      setError('An unexpected error occurred')
+      setError('An unexpected error occurred during login. Please try again.')
       setIsLoading(false)
     }
   }

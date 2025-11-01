@@ -6,7 +6,7 @@
 [[plugins]]
   package = "@netlify/plugin-nextjs"
 
-# Headers for security and PWA
+# Headers for manifest and service worker
 [[headers]]
   for = "/manifest.json"
   [headers.values]
@@ -19,6 +19,57 @@
     Content-Type = "application/javascript"
     Cache-Control = "public, max-age=0, must-revalidate"
 
+# Prevent caching of authenticated pages
+[[headers]]
+  for = "/dashboard/*"
+  [headers.values]
+    Cache-Control = "private, no-cache, no-store, max-age=0, must-revalidate"
+    Pragma = "no-cache"
+    Expires = "0"
+
+[[headers]]
+  for = "/admin/*"
+  [headers.values]
+    Cache-Control = "private, no-cache, no-store, max-age=0, must-revalidate"
+    Pragma = "no-cache"
+    Expires = "0"
+
+[[headers]]
+  for = "/tasks/*"
+  [headers.values]
+    Cache-Control = "private, no-cache, no-store, max-age=0, must-revalidate"
+    Pragma = "no-cache"
+    Expires = "0"
+
+[[headers]]
+  for = "/self-tasks/*"
+  [headers.values]
+    Cache-Control = "private, no-cache, no-store, max-age=0, must-revalidate"
+    Pragma = "no-cache"
+    Expires = "0"
+
+[[headers]]
+  for = "/leaves/*"
+  [headers.values]
+    Cache-Control = "private, no-cache, no-store, max-age=0, must-revalidate"
+    Pragma = "no-cache"
+    Expires = "0"
+
+[[headers]]
+  for = "/profile/*"
+  [headers.values]
+    Cache-Control = "private, no-cache, no-store, max-age=0, must-revalidate"
+    Pragma = "no-cache"
+    Expires = "0"
+
+[[headers]]
+  for = "/reports/*"
+  [headers.values]
+    Cache-Control = "private, no-cache, no-store, max-age=0, must-revalidate"
+    Pragma = "no-cache"
+    Expires = "0"
+
+# Security headers for all pages
 [[headers]]
   for = "/*"
   [headers.values]

@@ -18,46 +18,51 @@ export async function middleware(request: NextRequest) {
           return request.cookies.get(name)?.value
         },
         set(name: string, value: string, options) {
-          request.cookies.set({
-            name,
-            value,
-            ...options,
-          })
+          // Create a new response to avoid stale data
           response = NextResponse.next({
             request: {
               headers: request.headers,
             },
           })
+          
+          // Set cookie with proper options for Netlify
           response.cookies.set({
             name,
             value,
             ...options,
+            sameSite: 'lax',
+            secure: process.env.NODE_ENV === 'production',
+            path: '/',
           })
         },
         remove(name: string, options) {
-          request.cookies.set({
-            name,
-            value: '',
-            ...options,
-          })
+          // Create a new response to avoid stale data
           response = NextResponse.next({
             request: {
               headers: request.headers,
             },
           })
+          
+          // Remove cookie properly
           response.cookies.set({
             name,
             value: '',
             ...options,
+            path: '/',
+            maxAge: 0,
           })
         },
       },
     }
   )
 
-  // Just refresh the session, don't do redirects in middleware
-  // Let pages handle their own authentication and redirects
+  // Refresh the session to ensure cookies are up to date
   await supabase.auth.getUser()
+
+  // Add cache control headers to prevent caching of authenticated pages
+  response.headers.set('Cache-Control', 'private, no-cache, no-store, max-age=0, must-revalidate')
+  response.headers.set('Pragma', 'no-cache')
+  response.headers.set('Expires', '0')
 
   return response
 }

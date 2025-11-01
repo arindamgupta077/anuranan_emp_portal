@@ -15,7 +15,15 @@ export async function createServerClient() {
         },
         set(name: string, value: string, options: CookieOptions) {
           try {
-            cookieStore.set({ name, value, ...options })
+            // Ensure cookies are set with correct attributes for production
+            cookieStore.set({ 
+              name, 
+              value, 
+              ...options,
+              sameSite: 'lax',
+              secure: process.env.NODE_ENV === 'production',
+              path: '/',
+            })
           } catch (error) {
             // The `set` method was called from a Server Component.
             // This can be ignored if you have middleware refreshing
@@ -24,7 +32,12 @@ export async function createServerClient() {
         },
         remove(name: string, options: CookieOptions) {
           try {
-            cookieStore.set({ name, value: '', ...options })
+            cookieStore.set({ 
+              name, 
+              value: '', 
+              ...options,
+              path: '/',
+            })
           } catch (error) {
             // The `delete` method was called from a Server Component.
             // This can be ignored if you have middleware refreshing
@@ -32,25 +45,6 @@ export async function createServerClient() {
           }
         },
       },
-      global: {
-        fetch: async (url, options = {}) => {
-          const controller = new AbortController()
-          const timeoutId = setTimeout(() => controller.abort(), 30000) // 30s timeout
-
-          try {
-            const response = await fetch(url, {
-              ...options,
-              signal: controller.signal,
-            })
-            clearTimeout(timeoutId)
-            return response
-          } catch (error) {
-            clearTimeout(timeoutId)
-            console.error('Supabase fetch error:', error)
-            throw error
-          }
-        }
-      }
     }
   )
 }

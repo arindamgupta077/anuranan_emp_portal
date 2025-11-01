@@ -11,17 +11,29 @@ export const revalidate = 0
 export default async function DashboardPage() {
   const supabase = await createServerClient()
   
-  const { data: { user: authUser } } = await supabase.auth.getUser()
-  if (!authUser) redirect('/login')
+  const { data: { user: authUser }, error: authError } = await supabase.auth.getUser()
+  
+  if (authError || !authUser) {
+    console.error('Auth error on dashboard:', authError)
+    redirect('/login')
+  }
+
+  console.log('Dashboard - Auth User ID:', authUser.id, 'Email:', authUser.email)
 
   // Fetch user with role
-  const { data: user } = await supabase
+  const { data: user, error: userError } = await supabase
     .from('users')
     .select('*, role:roles(*)')
     .eq('id', authUser.id)
     .single()
 
-  if (!user) redirect('/login')
+  if (userError || !user) {
+    console.error('User fetch error:', userError)
+    console.error('Auth User ID used for query:', authUser.id)
+    redirect('/login')
+  }
+
+  console.log('Dashboard - DB User:', user.full_name, 'Role:', user.role.name)
 
   const isCEO = user.role.name === 'CEO'
 
