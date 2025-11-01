@@ -59,7 +59,9 @@ export default function ProfileClient({ user, stats }: Props) {
       : 0
 
   const handlePhotoClick = () => {
-    fileInputRef.current?.click()
+    if (!isUploading) {
+      fileInputRef.current?.click()
+    }
   }
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {

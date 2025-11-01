@@ -152,3 +152,128 @@ body {
     scroll-behavior: auto !important;
   }
 }
+
+/* Mobile-specific styles */
+@layer utilities {
+  /* Touch-friendly minimum tap target size (48x48px as per accessibility guidelines) */
+  .touch-target {
+    @apply min-h-[48px] min-w-[48px];
+  }
+
+  /* Better mobile scrolling */
+  .mobile-scroll {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+
+  /* Prevent text selection on mobile for interactive elements */
+  .no-select {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Mobile-friendly spacing */
+  .mobile-padding {
+    @apply px-4 py-3;
+  }
+
+  /* Improved mobile text readability */
+  .mobile-text {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+}
+
+/* Mobile viewport fixes */
+@media screen and (max-width: 768px) {
+  /* Prevent horizontal scrolling */
+  html,
+  body {
+    overflow-x: hidden;
+    width: 100%;
+  }
+
+  /* Better mobile form controls */
+  input,
+  textarea,
+  select {
+    font-size: 16px !important; /* Prevents zoom on iOS */
+  }
+
+  /* Mobile-optimized cards with increased horizontal padding */
+  .card {
+    @apply rounded-lg shadow-sm;
+    padding-left: 1.25rem !important;  /* 20px - increased from default 12px/16px */
+    padding-right: 1.25rem !important; /* 20px - increased from default 12px/16px */
+    padding-top: 1rem !important;      /* 16px */
+    padding-bottom: 1rem !important;   /* 16px */
+  }
+  
+  /* Increased horizontal padding for all main containers */
+  main,
+  .main-content {
+    padding-left: 1.25rem !important;  /* 20px */
+    padding-right: 1.25rem !important; /* 20px */
+  }
+
+  /* Sticky headers with proper spacing */
+  .sticky-mobile {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+  }
+
+  /* Hide scrollbar on mobile for cleaner look */
+  .hide-scrollbar-mobile {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .hide-scrollbar-mobile::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Better modal overlay on mobile */
+  .modal-overlay {
+    @apply fixed inset-0 bg-black/50 backdrop-blur-sm;
+  }
+
+  /* Full-width buttons on mobile */
+  .btn-mobile-full {
+    @apply w-full;
+  }
+}
+
+/* Small mobile devices */
+@media screen and (max-width: 480px) {
+  /* Slightly increased padding for better spacing */
+  .container {
+    padding-left: 1.25rem;  /* 20px */
+    padding-right: 1.25rem; /* 20px */
+  }
+
+  /* Smaller text for headings on mobile */
+  h1 {
+    @apply text-xl;
+  }
+
+  h2 {
+    @apply text-lg;
+  }
+
+  /* Stack elements on very small screens */
+  .mobile-stack {
+    @apply flex-col;
+  }
+  
+  /* Increased spacing for sections on mobile */
+  section,
+  .section {
+    padding-left: 1.25rem !important;  /* 20px */
+    padding-right: 1.25rem !important; /* 20px */
+  }
+}

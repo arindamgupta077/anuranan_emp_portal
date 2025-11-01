@@ -118,22 +118,22 @@ export default function SelfTasksClient({ user, selfTasks, employees }: SelfTask
   })
 
   return (
-    <div className="space-y-6 pb-20">
-      {/* Header Section */}
-      <div className="bg-gradient-to-r from-blue-600 to-indigo-600 -mx-6 -mt-6 px-6 py-8 mb-6 rounded-b-2xl shadow-lg">
-        <div className="flex justify-between items-center flex-wrap gap-4">
+    <div className="space-y-4 md:space-y-6 pb-20 px-4 md:px-0">
+      {/* Header Section - Mobile Optimized */}
+      <div className="bg-gradient-to-r from-blue-600 to-indigo-600 -mx-4 md:-mx-6 md:-mt-6 px-4 md:px-6 py-6 md:py-8 mb-4 md:mb-6 rounded-b-2xl shadow-lg">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-white">Self Task Logging</h1>
-            <p className="mt-2 text-blue-100">
+            <h1 className="text-2xl md:text-3xl font-bold text-white">Self Task Logging</h1>
+            <p className="mt-2 text-sm md:text-base text-blue-100">
               {isCEO ? 'View all employee self-logged tasks' : 'Track your daily tasks and accomplishments'}
             </p>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3 md:gap-4 w-full md:w-auto">
             <Button
               onClick={() => setIsModalOpen(true)}
-              className="!bg-white !text-blue-700 hover:!bg-gray-50 shadow-lg hover:shadow-xl transition-all duration-200 font-semibold"
+              className="!bg-white !text-blue-700 hover:!bg-gray-50 shadow-lg hover:shadow-xl transition-all duration-200 font-semibold touch-target flex-1 md:flex-none"
             >
-              <Plus className="w-5 h-5 mr-2" />
+              <Plus className="w-4 h-4 md:w-5 md:h-5 mr-2" />
               Log New Task
             </Button>
             <div className="hidden lg:block">
@@ -146,22 +146,22 @@ export default function SelfTasksClient({ user, selfTasks, employees }: SelfTask
         </div>
       </div>
 
-      {/* Filters Section */}
+      {/* Filters Section - Mobile Optimized */}
       <Card className="border-l-4 border-blue-500">
         <div className="space-y-4">
-          <div className="flex items-center justify-between flex-wrap gap-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center sm:justify-between gap-3 sm:gap-4">
             <div className="flex items-center gap-2">
-              <Filter className="w-5 h-5 text-blue-600" />
+              <Filter className="w-4 h-4 md:w-5 md:h-5 text-blue-600" />
               <span className="text-sm font-semibold text-gray-900">Filters</span>
             </div>
-            <div className="bg-blue-50 rounded-lg px-4 py-2">
-              <span className="text-sm font-medium text-blue-700">
+            <div className="bg-blue-50 rounded-lg px-3 md:px-4 py-1.5 md:py-2">
+              <span className="text-xs md:text-sm font-medium text-blue-700">
                 {filteredTasks.length} Task{filteredTasks.length !== 1 ? 's' : ''}
               </span>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
             {/* CEO Employee Filter */}
             {isCEO && employees.length > 0 && (
               <div className="space-y-2">

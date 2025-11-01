@@ -144,28 +144,80 @@ export default function TasksClient({ user, tasks, employees }: TasksClientProps
   }
 
   return (
-    <div className="space-y-4">
-      {/* Header */}
+    <div className="space-y-4 px-4 md:px-0 pb-8">
+      {/* Header - Mobile Optimized */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
         <div>
-          <h1 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+          <h1 className="text-xl md:text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
             Tasks Management
           </h1>
-          <p className="mt-0.5 text-sm text-gray-600">
+          <p className="mt-0.5 text-xs md:text-sm text-gray-600">
             {isCEO ? 'Manage all organization tasks' : 'View and update your assigned tasks'}
           </p>
         </div>
         {isCEO && (
-          <Button onClick={() => setShowAssignModal(true)} className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700">
+          <Button onClick={() => setShowAssignModal(true)} className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 touch-target w-full sm:w-auto">
             <Plus className="w-4 h-4 mr-2" />
             Assign Task
           </Button>
         )}
       </div>
 
-      {/* Statistics Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2">
-        <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white border-0 shadow-sm hover:shadow-md transition-all hover:scale-[1.03] hover:from-blue-600 hover:to-blue-700 p-2">
+      {/* Statistics - Compact Single Row for Mobile, Cards for Desktop */}
+      
+      {/* Mobile: Compact Single Row */}
+      <div className="md:hidden">
+        <Card className="bg-white border border-gray-200 shadow-sm p-3">
+          <div className="flex items-center justify-between gap-2 overflow-x-auto hide-scrollbar-mobile">
+            {/* Total */}
+            <div className="flex flex-col items-center min-w-[60px]">
+              <Clock className="w-4 h-4 text-blue-600 mb-1" />
+              <p className="text-lg font-bold text-gray-900">{totalTasks}</p>
+              <p className="text-[9px] text-gray-600 font-medium">Total</p>
+            </div>
+            
+            <div className="h-10 w-px bg-gray-200" />
+            
+            {/* Open */}
+            <div className="flex flex-col items-center min-w-[60px]">
+              <Circle className="w-4 h-4 text-indigo-600 mb-1" />
+              <p className="text-lg font-bold text-gray-900">{openTasks}</p>
+              <p className="text-[9px] text-gray-600 font-medium">Open</p>
+            </div>
+            
+            <div className="h-10 w-px bg-gray-200" />
+            
+            {/* In Progress */}
+            <div className="flex flex-col items-center min-w-[60px]">
+              <Loader className="w-4 h-4 text-amber-600 mb-1" />
+              <p className="text-lg font-bold text-gray-900">{inProgressTasks}</p>
+              <p className="text-[9px] text-gray-600 font-medium">Progress</p>
+            </div>
+            
+            <div className="h-10 w-px bg-gray-200" />
+            
+            {/* Completed */}
+            <div className="flex flex-col items-center min-w-[60px]">
+              <CheckCircle className="w-4 h-4 text-emerald-600 mb-1" />
+              <p className="text-lg font-bold text-gray-900">{completedTasks}</p>
+              <p className="text-[9px] text-gray-600 font-medium">Done</p>
+            </div>
+            
+            <div className="h-10 w-px bg-gray-200" />
+            
+            {/* Overdue */}
+            <div className="flex flex-col items-center min-w-[60px]">
+              <AlertCircle className="w-4 h-4 text-rose-600 mb-1" />
+              <p className="text-lg font-bold text-gray-900">{overdueTasks}</p>
+              <p className="text-[9px] text-gray-600 font-medium">Overdue</p>
+            </div>
+          </div>
+        </Card>
+      </div>
+
+      {/* Desktop: Original Card Grid */}
+      <div className="hidden md:grid md:grid-cols-3 lg:grid-cols-5 gap-3">
+        <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white border-0 shadow-sm hover:shadow-md transition-all md:hover:scale-[1.03] hover:from-blue-600 hover:to-blue-700 p-3">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-blue-100 text-xs font-semibold">Total Tasks</p>
@@ -177,7 +229,7 @@ export default function TasksClient({ user, tasks, employees }: TasksClientProps
           </div>
         </Card>
 
-        <Card className="bg-gradient-to-br from-indigo-500 to-indigo-600 text-white border-0 shadow-sm hover:shadow-md transition-all hover:scale-[1.03] hover:from-indigo-600 hover:to-indigo-700 p-2">
+        <Card className="bg-gradient-to-br from-indigo-500 to-indigo-600 text-white border-0 shadow-sm hover:shadow-md transition-all md:hover:scale-[1.03] hover:from-indigo-600 hover:to-indigo-700 p-3">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-indigo-100 text-xs font-semibold">Open</p>
@@ -189,7 +241,7 @@ export default function TasksClient({ user, tasks, employees }: TasksClientProps
           </div>
         </Card>
 
-        <Card className="bg-gradient-to-br from-amber-500 to-orange-500 text-white border-0 shadow-sm hover:shadow-md transition-all hover:scale-[1.03] hover:from-amber-600 hover:to-orange-600 p-2">
+        <Card className="bg-gradient-to-br from-amber-500 to-orange-500 text-white border-0 shadow-sm hover:shadow-md transition-all md:hover:scale-[1.03] hover:from-amber-600 hover:to-orange-600 p-3">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-amber-100 text-xs font-semibold">In Progress</p>
@@ -201,7 +253,7 @@ export default function TasksClient({ user, tasks, employees }: TasksClientProps
           </div>
         </Card>
 
-        <Card className="bg-gradient-to-br from-emerald-500 to-green-600 text-white border-0 shadow-sm hover:shadow-md transition-all hover:scale-[1.03] hover:from-emerald-600 hover:to-green-700 p-2">
+        <Card className="bg-gradient-to-br from-emerald-500 to-green-600 text-white border-0 shadow-sm hover:shadow-md transition-all md:hover:scale-[1.03] hover:from-emerald-600 hover:to-green-700 p-3">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-emerald-100 text-xs font-semibold">Completed</p>
@@ -213,7 +265,7 @@ export default function TasksClient({ user, tasks, employees }: TasksClientProps
           </div>
         </Card>
 
-        <Card className="bg-gradient-to-br from-rose-500 to-red-600 text-white border-0 shadow-sm hover:shadow-md transition-all hover:scale-[1.03] hover:from-rose-600 hover:to-red-700 p-2">
+        <Card className="bg-gradient-to-br from-rose-500 to-red-600 text-white border-0 shadow-sm hover:shadow-md transition-all md:hover:scale-[1.03] hover:from-rose-600 hover:to-red-700 p-3">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-rose-100 text-xs font-semibold">Overdue</p>
@@ -226,39 +278,46 @@ export default function TasksClient({ user, tasks, employees }: TasksClientProps
         </Card>
       </div>
 
-      {/* Filters */}
+      {/* Filters - Mobile: Single Line, Desktop: Wrapped */}
       <Card className="bg-white border border-gray-200 shadow-sm p-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <Filter className="w-4 h-4 text-indigo-600" />
-          <span className="text-xs font-semibold text-gray-700 uppercase tracking-wide">Filter by status:</span>
-          {TASK_STATUSES.map(status => {
-            const isActive = statusFilters.includes(status)
-            return (
-              <button
-                key={status}
-                onClick={() => toggleStatusFilter(status)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 flex items-center gap-1.5 ${
-                  isActive
-                    ? status === 'COMPLETED'
-                      ? 'bg-gradient-to-r from-emerald-500 to-green-600 text-white shadow-sm'
-                      : status === 'IN_PROGRESS'
-                      ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-sm'
-                      : 'bg-gradient-to-r from-indigo-500 to-indigo-600 text-white shadow-sm'
-                    : 'bg-gray-50 text-gray-700 hover:bg-gray-100 border border-gray-200'
-                }`}
-              >
-                {isActive && getStatusIcon(status)}
-                {status.replace('_', ' ')}
-              </button>
-            )
-          })}
+        <div className="flex flex-col gap-2">
+          {/* Filter Label */}
+          <div className="flex items-center gap-2">
+            <Filter className="w-4 h-4 text-indigo-600" />
+            <span className="text-xs font-semibold text-gray-700 uppercase tracking-wide">Filter by status:</span>
+          </div>
+          
+          {/* Filter Buttons - Single scrollable line on mobile, wrapped on desktop */}
+          <div className="flex md:flex-wrap gap-2 overflow-x-auto hide-scrollbar-mobile pb-1">
+            {TASK_STATUSES.map(status => {
+              const isActive = statusFilters.includes(status)
+              return (
+                <button
+                  key={status}
+                  onClick={() => toggleStatusFilter(status)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 flex items-center gap-1.5 whitespace-nowrap flex-shrink-0 ${
+                    isActive
+                      ? status === 'COMPLETED'
+                        ? 'bg-gradient-to-r from-emerald-500 to-green-600 text-white shadow-sm'
+                        : status === 'IN_PROGRESS'
+                        ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-sm'
+                        : 'bg-gradient-to-r from-indigo-500 to-indigo-600 text-white shadow-sm'
+                      : 'bg-gray-50 text-gray-700 hover:bg-gray-100 border border-gray-200'
+                  }`}
+                >
+                  {isActive && getStatusIcon(status)}
+                  {status.replace('_', ' ')}
+                </button>
+              )
+            })}
+          </div>
         </div>
       </Card>
 
-      {/* Tasks Table */}
+      {/* Tasks Table/Cards - Mobile Responsive */}
       <div className="bg-white rounded-lg shadow-sm overflow-hidden border border-gray-200">
         {filteredTasks.length === 0 ? (
-          <div className="text-center py-12">
+          <div className="text-center py-12 px-4">
             <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-gradient-to-br from-indigo-100 to-purple-100 mb-3">
               <Clock className="w-7 h-7 text-indigo-600" />
             </div>
@@ -268,7 +327,9 @@ export default function TasksClient({ user, tasks, employees }: TasksClientProps
             </p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <>
+            {/* Desktop Table View - Hidden on mobile */}
+            <div className="hidden md:block overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gradient-to-r from-slate-50 to-gray-50">
                 <tr>
@@ -409,28 +470,120 @@ export default function TasksClient({ user, tasks, employees }: TasksClientProps
               </tbody>
             </table>
           </div>
+
+          {/* Mobile Card View - Visible only on mobile */}
+          <div className="md:hidden divide-y divide-gray-200">
+            {paginatedTasks.map((task) => {
+              const overdue = task.due_date && isOverdue(task.due_date) && task.status !== 'COMPLETED'
+              
+              return (
+                <div key={task.id} className="p-4 hover:bg-gray-50 transition-colors">
+                  {/* Task Header */}
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-mono font-bold bg-gradient-to-r from-indigo-100 to-purple-100 text-indigo-700 border border-indigo-200">
+                          #{task.task_number}
+                        </span>
+                        {overdue && (
+                          <span className="flex items-center text-rose-600 bg-rose-50 px-2 py-0.5 rounded text-xs font-semibold">
+                            <AlertCircle className="w-3 h-3 mr-1" />
+                            Overdue
+                          </span>
+                        )}
+                      </div>
+                      <h3 className="text-sm font-semibold text-gray-900">{task.title}</h3>
+                      {task.details && (
+                        <p className="text-xs text-gray-500 mt-1 line-clamp-2">{task.details}</p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Task Details */}
+                  <div className="space-y-2 mb-3">
+                    {/* Assigned To */}
+                    {task.assigned_user && (
+                      <div className="flex items-center gap-2">
+                        <div className="flex-shrink-0 h-7 w-7 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white font-semibold text-xs">
+                          {task.assigned_user.full_name.charAt(0)}
+                        </div>
+                        <span className="text-xs font-medium text-gray-700">
+                          {task.assigned_user.full_name}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Due Date */}
+                    {task.due_date && (
+                      <div className="flex items-center gap-2">
+                        <Clock className="w-4 h-4 text-gray-400" />
+                        <span className={`text-xs font-semibold ${
+                          overdue ? 'text-rose-700' : 'text-gray-700'
+                        }`}>
+                          Due: {formatDate(task.due_date)}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Status */}
+                    <div className="flex items-center gap-2">
+                      <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded text-xs font-bold border ${getStatusColor(task.status as TaskStatus)}`}>
+                        {getStatusIcon(task.status as TaskStatus)}
+                        {task.status.replace('_', ' ')}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex gap-2">
+                    <select
+                      value={task.status}
+                      onChange={(e) => handleStatusUpdate(task.id, e.target.value as TaskStatus)}
+                      disabled={isUpdating}
+                      className="flex-1 text-xs px-2 py-2 border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 touch-target"
+                    >
+                      {TASK_STATUSES.map(status => (
+                        <option key={status} value={status}>
+                          {status.replace('_', ' ')}
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      onClick={() => setSelectedTask(task)}
+                      className="inline-flex items-center gap-1.5 px-3 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-xs font-semibold rounded-md active:scale-95 transition-all touch-target"
+                    >
+                      <Eye className="w-3.5 h-3.5" />
+                      View
+                    </button>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </>
         )}
         
-        {/* Pagination Controls */}
+        {/* Pagination Controls - Mobile Optimized */}
         {totalFilteredTasks > 0 && totalPages > 1 && (
-          <div className="px-4 py-3 bg-gray-50 border-t border-gray-200 flex items-center justify-between">
-            <div className="flex items-center gap-2 text-sm text-gray-700">
+          <div className="px-3 md:px-4 py-3 bg-gray-50 border-t border-gray-200 flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div className="flex items-center gap-2 text-xs md:text-sm text-gray-700">
               <span className="font-medium">
                 Showing {startIndex + 1} - {Math.min(endIndex, totalFilteredTasks)} of {totalFilteredTasks} tasks
               </span>
             </div>
             
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 md:gap-2">
               <button
                 onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                 disabled={currentPage === 1}
-                className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${
+                className={`px-2 md:px-3 py-1.5 text-xs md:text-sm font-medium rounded-md transition-all touch-target ${
                   currentPage === 1
                     ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
                     : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
                 }`}
               >
-                Previous
+                <span className="hidden sm:inline">Previous</span>
+                <span className="sm:hidden">Prev</span>
               </button>
               
               <div className="flex items-center gap-1">
@@ -450,7 +603,7 @@ export default function TasksClient({ user, tasks, employees }: TasksClientProps
                     <button
                       key={pageNumber}
                       onClick={() => setCurrentPage(pageNumber)}
-                      className={`w-8 h-8 text-sm font-medium rounded-md transition-all ${
+                      className={`w-7 h-7 md:w-8 md:h-8 text-xs md:text-sm font-medium rounded-md transition-all touch-target ${
                         currentPage === pageNumber
                           ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-sm'
                           : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
@@ -463,10 +616,10 @@ export default function TasksClient({ user, tasks, employees }: TasksClientProps
                 
                 {totalPages > 5 && currentPage < totalPages - 2 && (
                   <>
-                    <span className="text-gray-500 px-1">...</span>
+                    <span className="text-gray-500 px-0.5 md:px-1 text-xs md:text-sm">...</span>
                     <button
                       onClick={() => setCurrentPage(totalPages)}
-                      className="w-8 h-8 text-sm font-medium rounded-md bg-white text-gray-700 border border-gray-300 hover:bg-gray-50"
+                      className="w-7 h-7 md:w-8 md:h-8 text-xs md:text-sm font-medium rounded-md bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 touch-target"
                     >
                       {totalPages}
                     </button>
@@ -477,7 +630,7 @@ export default function TasksClient({ user, tasks, employees }: TasksClientProps
               <button
                 onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                 disabled={currentPage === totalPages}
-                className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${
+                className={`px-2 md:px-3 py-1.5 text-xs md:text-sm font-medium rounded-md transition-all touch-target ${
                   currentPage === totalPages
                     ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
                     : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
