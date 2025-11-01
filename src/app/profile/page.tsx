@@ -3,6 +3,11 @@ import { createServerClient } from '@/lib/supabase/server'
 import ProfileClient from './ProfileClient'
 import ProtectedLayout from '@/components/layout/ProtectedLayout'
 
+// Cache for 10 minutes with automatic revalidation
+export const revalidate = 600
+// Auto: Let Next.js decide based on request
+export const fetchCache = 'default-cache'
+
 export default async function ProfilePage() {
   const supabase = await createServerClient()
   const { data: { user: authUser } } = await supabase.auth.getUser()

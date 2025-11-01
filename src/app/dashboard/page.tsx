@@ -3,6 +3,11 @@ import { createServerClient } from '@/lib/supabase/server'
 import ProtectedLayout from '@/components/layout/ProtectedLayout'
 import DashboardClient from './DashboardClient'
 
+// Dynamic rendering to ensure fresh data after mutations
+export const dynamic = 'force-dynamic'
+// Disable caching for this page to show immediate updates
+export const revalidate = 0
+
 export default async function DashboardPage() {
   const supabase = await createServerClient()
   
@@ -20,69 +25,77 @@ export default async function DashboardPage() {
 
   const isCEO = user.role.name === 'CEO'
 
-  // Fetch dashboard stats
-  const tasksQuery = supabase
+  // Build queries
+  let tasksQuery = supabase
     .from('tasks')
     .select('*', { count: 'exact', head: true })
     .in('status', ['OPEN', 'IN_PROGRESS'])
 
   if (!isCEO) {
-    tasksQuery.eq('assigned_to', user.id)
+    tasksQuery = tasksQuery.eq('assigned_to', user.id)
   }
 
-  const { count: activeTasks } = await tasksQuery
-
-  // Get self tasks count
-  const selfTasksQuery = supabase
+  let selfTasksQuery = supabase
     .from('self_tasks')
     .select('*', { count: 'exact', head: true })
 
   if (!isCEO) {
-    selfTasksQuery.eq('user_id', user.id)
+    selfTasksQuery = selfTasksQuery.eq('user_id', user.id)
   }
 
-  const { count: selfTasksCount } = await selfTasksQuery
-
-  // Get pending leaves
-  const leavesQuery = supabase
+  let leavesQuery = supabase
     .from('leaves')
     .select('*', { count: 'exact', head: true })
     .eq('status', 'PENDING')
 
   if (!isCEO) {
-    leavesQuery.eq('user_id', user.id)
+    leavesQuery = leavesQuery.eq('user_id', user.id)
   }
 
-  const { count: pendingLeaves } = await leavesQuery
+  // Fetch all common queries in parallel
+  const [
+    { count: activeTasks },
+    { count: selfTasksCount },
+    { count: pendingLeaves }
+  ] = await Promise.all([
+    tasksQuery,
+    selfTasksQuery,
+    leavesQuery
+  ])
 
-  // CEO-specific stats
+  // CEO-specific stats - fetch in parallel
   let totalEmployees = 0
   let overdueTasksCount = 0
   let completionRate = 0
 
   if (isCEO) {
-    const { count } = await supabase
-      .from('users')
-      .select('*', { count: 'exact', head: true })
-      .eq('is_active', true)
-    totalEmployees = count || 0
+    const [
+      { count: employeesCount },
+      { count: overdue },
+      { count: totalTasksCount },
+      { count: completedTasksCount }
+    ] = await Promise.all([
+      supabase
+        .from('users')
+        .select('*', { count: 'exact', head: true })
+        .eq('is_active', true),
+      supabase
+        .from('tasks')
+        .select('*', { count: 'exact', head: true })
+        .neq('status', 'COMPLETED')
+        .lt('due_date', new Date().toISOString().split('T')[0]),
+      supabase
+        .from('tasks')
+        .select('*', { count: 'exact', head: true }),
+      supabase
+        .from('tasks')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'COMPLETED')
+    ])
 
-    const { count: overdue } = await supabase
-      .from('tasks')
-      .select('*', { count: 'exact', head: true })
-      .neq('status', 'COMPLETED')
-      .lt('due_date', new Date().toISOString().split('T')[0])
+    totalEmployees = employeesCount || 0
     overdueTasksCount = overdue || 0
-
-    const { count: totalTasksCount } = await supabase
-      .from('tasks')
-      .select('*', { count: 'exact', head: true })
-
-    const { count: completedTasksCount } = await supabase
-      .from('tasks')
-      .select('*', { count: 'exact', head: true })
-      .eq('status', 'COMPLETED')
-
+    
     if (totalTasksCount && totalTasksCount > 0) {
       completionRate = Math.round((completedTasksCount! / totalTasksCount) * 100)
     }

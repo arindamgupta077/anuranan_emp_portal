@@ -3,6 +3,11 @@ import { createServerClient } from '@/lib/supabase/server'
 import ProtectedLayout from '@/components/layout/ProtectedLayout'
 import LeavesClient from './LeavesClient'
 
+// Dynamic rendering to ensure fresh data after mutations
+export const dynamic = 'force-dynamic'
+// Disable caching for this page to show immediate updates
+export const revalidate = 0
+
 export default async function LeavesPage() {
   const supabase = await createServerClient()
   
@@ -19,7 +24,7 @@ export default async function LeavesPage() {
 
   const isCEO = user.role.name === 'CEO'
 
-  // Fetch leaves
+  // Build leaves query
   let leavesQuery = supabase
     .from('leaves')
     .select(`
@@ -33,22 +38,29 @@ export default async function LeavesPage() {
     leavesQuery = leavesQuery.eq('user_id', user.id)
   }
 
-  const { data: leaves } = await leavesQuery
-
-  // Fetch all employees for CEO filter
+  // Fetch leaves and employees in parallel for CEO
+  let leaves: any[] = []
   let employees: any[] = []
+
   if (isCEO) {
-    const { data } = await supabase
-      .from('users')
-      .select('id, full_name')
-      .eq('is_active', true)
-      .order('full_name')
-    employees = data || []
+    const [leavesResult, employeesResult] = await Promise.all([
+      leavesQuery,
+      supabase
+        .from('users')
+        .select('id, full_name')
+        .eq('is_active', true)
+        .order('full_name')
+    ])
+    leaves = leavesResult.data || []
+    employees = employeesResult.data || []
+  } else {
+    const { data } = await leavesQuery
+    leaves = data || []
   }
 
   return (
     <ProtectedLayout user={user}>
-      <LeavesClient user={user} leaves={leaves || []} employees={employees} />
+      <LeavesClient user={user} leaves={leaves} employees={employees} />
     </ProtectedLayout>
   )
 }

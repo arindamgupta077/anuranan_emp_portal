@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { Menu, X, LayoutDashboard, CheckSquare, ClipboardList, Calendar, Settings, User, LogOut } from 'lucide-react'
@@ -24,6 +24,14 @@ export default function Navbar({ user }: NavbarProps) {
   
   const isCEO = user.role.name === 'CEO'
 
+  // Cache user info for loading states
+  useEffect(() => {
+    sessionStorage.setItem('user_info', JSON.stringify({
+      name: user.full_name,
+      role: user.role.name
+    }))
+  }, [user.full_name, user.role.name])
+
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
     { name: 'Tasks', href: '/tasks', icon: CheckSquare },
@@ -33,6 +41,8 @@ export default function Navbar({ user }: NavbarProps) {
   ]
 
   const handleLogout = async () => {
+    // Clear cached user info
+    sessionStorage.removeItem('user_info')
     await supabase.auth.signOut()
     router.push('/login')
     router.refresh()
@@ -57,6 +67,7 @@ export default function Navbar({ user }: NavbarProps) {
                   <Link
                     key={item.name}
                     href={item.href}
+                    prefetch={true}
                     className={`inline-flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors ${
                       isActive
                         ? 'bg-primary-50 text-primary-700'
@@ -77,6 +88,7 @@ export default function Navbar({ user }: NavbarProps) {
             <div className="hidden md:flex items-center space-x-3">
               <Link
                 href="/profile"
+                prefetch={true}
                 className="flex items-center space-x-2 text-sm text-gray-700 hover:text-primary-600 transition-colors"
               >
                 <User className="w-5 h-5" />
@@ -118,6 +130,7 @@ export default function Navbar({ user }: NavbarProps) {
                 <Link
                   key={item.name}
                   href={item.href}
+                  prefetch={true}
                   onClick={() => setIsMobileMenuOpen(false)}
                   className={`flex items-center px-3 py-2 rounded-md text-base font-medium ${
                     isActive
@@ -132,6 +145,7 @@ export default function Navbar({ user }: NavbarProps) {
             })}
             <Link
               href="/profile"
+              prefetch={true}
               onClick={() => setIsMobileMenuOpen(false)}
               className="flex items-center px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100"
             >

@@ -3,6 +3,11 @@ import { createServerClient } from '@/lib/supabase/server'
 import ReportsClient from './ReportsClient'
 import ProtectedLayout from '@/components/layout/ProtectedLayout'
 
+// Cache for 15 minutes with automatic revalidation
+export const revalidate = 900
+// Auto: Let Next.js decide based on request
+export const fetchCache = 'default-cache'
+
 export default async function ReportsPage() {
   const supabase = await createServerClient()
   const { data: { user: authUser } } = await supabase.auth.getUser()
@@ -21,29 +26,30 @@ export default async function ReportsPage() {
     redirect('/dashboard')
   }
 
-  // Fetch all employees with role info
-  const { data: employees } = await supabase
-    .from('users')
-    .select('id, full_name, email, status, role:roles(name)')
-    .order('full_name')
-
-  // Fetch tasks with completion info
-  const { data: tasks } = await supabase
-    .from('tasks')
-    .select('*, assigned_to_user:users!assigned_to(id, full_name), created_by_user:users!created_by(id, full_name)')
-    .order('created_at', { ascending: false })
-
-  // Fetch self tasks
-  const { data: selfTasks } = await supabase
-    .from('self_tasks')
-    .select('*, user:users(id, full_name)')
-    .order('date', { ascending: false })
-
-  // Fetch leaves
-  const { data: leaves } = await supabase
-    .from('leaves')
-    .select('*, user:users(id, full_name)')
-    .order('created_at', { ascending: false })
+  // Fetch all data in parallel for better performance
+  const [
+    { data: employees },
+    { data: tasks },
+    { data: selfTasks },
+    { data: leaves }
+  ] = await Promise.all([
+    supabase
+      .from('users')
+      .select('id, full_name, email, status, role:roles(name)')
+      .order('full_name'),
+    supabase
+      .from('tasks')
+      .select('*, assigned_to_user:users!assigned_to(id, full_name), created_by_user:users!created_by(id, full_name)')
+      .order('created_at', { ascending: false }),
+    supabase
+      .from('self_tasks')
+      .select('*, user:users(id, full_name)')
+      .order('date', { ascending: false }),
+    supabase
+      .from('leaves')
+      .select('*, user:users(id, full_name)')
+      .order('created_at', { ascending: false })
+  ])
 
   return (
     <ProtectedLayout user={userData}>

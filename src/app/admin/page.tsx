@@ -3,6 +3,11 @@ import { createServerClient } from '@/lib/supabase/server'
 import AdminClient from './AdminClient'
 import ProtectedLayout from '@/components/layout/ProtectedLayout'
 
+// Dynamic rendering to ensure fresh data after mutations
+export const dynamic = 'force-dynamic'
+// Disable caching for this page to show immediate updates
+export const revalidate = 0
+
 export default async function AdminPage() {
   const supabase = await createServerClient()
   const { data: { user: authUser } } = await supabase.auth.getUser()
@@ -21,23 +26,25 @@ export default async function AdminPage() {
     redirect('/dashboard')
   }
 
-  // Fetch employees
-  const { data: employees } = await supabase
-    .from('users')
-    .select('*, role:roles(*)')
-    .order('full_name')
-
-  // Fetch all roles
-  const { data: roles } = await supabase
-    .from('roles')
-    .select('*')
-    .order('name')
-
-  // Fetch recurring tasks
-  const { data: recurringTasks } = await supabase
-    .from('recurring_tasks')
-    .select('*, assigned_to_user:users!assigned_to(id, full_name)')
-    .order('created_at', { ascending: false })
+  // Fetch all admin data in parallel
+  const [
+    { data: employees },
+    { data: roles },
+    { data: recurringTasks }
+  ] = await Promise.all([
+    supabase
+      .from('users')
+      .select('*, role:roles(*)')
+      .order('full_name'),
+    supabase
+      .from('roles')
+      .select('*')
+      .order('name'),
+    supabase
+      .from('recurring_tasks')
+      .select('*, assigned_to_user:users!assigned_to(id, full_name)')
+      .order('created_at', { ascending: false })
+  ])
 
   return (
     <ProtectedLayout user={userData}>
