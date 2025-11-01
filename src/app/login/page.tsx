@@ -85,7 +85,7 @@ export default function LoginPage() {
             </div>
             <h1 className="text-5xl font-bold text-gray-900 leading-tight">
               Welcome to<br />
-              <span className="text-primary-600">Anuranan</span>
+              <span className="premium-brand" style={{ fontSize: '3rem', display: 'inline-block' }}>ANURANAN</span>
             </h1>
             <p className="text-xl text-gray-700 leading-relaxed">
               Bengali Recitation Training Institute
@@ -147,7 +147,9 @@ export default function LoginPage() {
                 Enter your credentials to access your account
               </p>
               <div className="lg:hidden mt-2">
-                <p className="text-xs text-primary-600 font-medium">Anuranan Employee Portal</p>
+                <p className="text-xs font-medium">
+                  <span className="premium-brand" style={{ fontSize: '0.875rem' }}>ANURANAN</span> Employee Portal
+                </p>
               </div>
             </div>
 

@@ -70,6 +70,16 @@ body {
   .text-balance {
     text-wrap: balance;
   }
+  
+  /* Hide scrollbar for horizontal scroll on mobile */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 /* Custom scrollbar */
@@ -147,6 +157,84 @@ body {
 /* Gradient Text */
 .gradient-text {
   @apply bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600;
+}
+
+/* Premium ANURANAN Brand Animation */
+@keyframes premiumGlow {
+  0%, 100% {
+    filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.5)) drop-shadow(0 0 16px rgba(234, 179, 8, 0.3));
+  }
+  50% {
+    filter: drop-shadow(0 0 12px rgba(59, 130, 246, 0.7)) drop-shadow(0 0 24px rgba(234, 179, 8, 0.5));
+  }
+}
+
+@keyframes gradientShift {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+.premium-brand {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+  font-weight: 800;
+  font-size: 1.75rem;
+  letter-spacing: 0.05em;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 25%, #eab308 50%, #f59e0b 75%, #3b82f6 100%);
+  background-size: 200% 200%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: gradientShift 8s ease-in-out infinite;
+  text-shadow: 0 0 30px rgba(59, 130, 246, 0.3);
+  position: relative;
+  display: inline-block;
+  transition: all 0.3s ease;
+}
+
+.premium-brand:hover {
+  animation: gradientShift 3s ease-in-out infinite, premiumGlow 2s ease-in-out infinite;
+  transform: scale(1.02);
+}
+
+.premium-brand-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.5rem;
+}
+
+.premium-brand-wrapper::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.05), rgba(234, 179, 8, 0.05));
+  border-radius: 0.5rem;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.premium-brand-wrapper:hover::before {
+  opacity: 1;
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .premium-brand {
+    background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 25%, #fbbf24 50%, #f59e0b 75%, #60a5fa 100%);
+    background-size: 200% 200%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-shadow: 0 0 40px rgba(96, 165, 250, 0.4);
+  }
+  
+  .premium-brand-wrapper::before {
+    background: linear-gradient(135deg, rgba(96, 165, 250, 0.08), rgba(251, 191, 36, 0.08));
+  }
 }
 
 /* Glass Morphism Effect */

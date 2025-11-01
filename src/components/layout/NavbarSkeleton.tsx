@@ -39,8 +39,8 @@ export default function NavbarSkeleton() {
         <div className="flex justify-between h-16">
           <div className="flex items-center">
             {/* Logo */}
-            <Link href="/dashboard" className="flex-shrink-0 flex items-center">
-              <span className="text-2xl font-bold text-primary-600">Anuranan</span>
+            <Link href="/dashboard" className="flex-shrink-0 flex items-center premium-brand-wrapper">
+              <span className="premium-brand">ANURANAN</span>
             </Link>
 
             {/* Desktop Navigation - Show all buttons */}
