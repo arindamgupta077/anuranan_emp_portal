@@ -3,10 +3,9 @@ import { createServerClient } from '@/lib/supabase/server'
 import ProfileClient from './ProfileClient'
 import ProtectedLayout from '@/components/layout/ProtectedLayout'
 
-// Cache for 10 minutes with automatic revalidation
-export const revalidate = 600
-// Auto: Let Next.js decide based on request
-export const fetchCache = 'default-cache'
+// Disable cache for profile page to always show latest data including profile photo
+export const revalidate = 0
+export const dynamic = 'force-dynamic'
 
 export default async function ProfilePage() {
   const supabase = await createServerClient()
@@ -18,12 +17,19 @@ export default async function ProfilePage() {
 
   const { data: userData } = await supabase
     .from('users')
-    .select('*, role:roles(*)')
+    .select('id, email, full_name, is_active, profile_photo_url, role:roles(*)')
     .eq('id', authUser.id)
     .single()
 
   if (!userData) {
     redirect('/login')
+  }
+
+  // Map user data with status
+  const userWithStatus = {
+    ...userData,
+    status: userData.is_active ? 'ACTIVE' : 'INACTIVE',
+    role: Array.isArray(userData.role) ? userData.role[0] : userData.role
   }
 
   // Get user stats
@@ -48,9 +54,9 @@ export default async function ProfilePage() {
   const approvedLeaves = leaveStats?.filter((l) => l.status === 'APPROVED').length || 0
 
   return (
-    <ProtectedLayout user={userData}>
+    <ProtectedLayout user={userWithStatus}>
       <ProfileClient
-        user={userData}
+        user={userWithStatus}
         stats={{
           completedTasks,
           totalTasks,

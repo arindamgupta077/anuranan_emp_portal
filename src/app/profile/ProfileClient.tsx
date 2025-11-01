@@ -1,16 +1,21 @@
 'use client'
 
+import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { User, Mail, Shield, CheckCircle, ClipboardList, Calendar, FileText } from 'lucide-react'
+import { User, Mail, Shield, CheckCircle, ClipboardList, Calendar, FileText, Camera, Upload, Edit2, Loader2 } from 'lucide-react'
 import Card from '@/components/ui/Card'
 import Button from '@/components/ui/Button'
 import Badge from '@/components/ui/Badge'
+import Input from '@/components/ui/Input'
+import Modal from '@/components/ui/Modal'
+import { useToast } from '@/components/ui/Toast'
 
 type UserData = {
   id: string
   full_name: string
   email: string
   status: string
+  profile_photo_url?: string | null
   role: {
     name: string
     description: string | null
@@ -31,44 +36,187 @@ type Props = {
 
 export default function ProfileClient({ user, stats }: Props) {
   const router = useRouter()
+  const { showToast } = useToast()
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [isUploading, setIsUploading] = useState(false)
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+  const [fullName, setFullName] = useState(user.full_name)
+  const [isUpdating, setIsUpdating] = useState(false)
+  const [profilePhotoUrl, setProfilePhotoUrl] = useState(user.profile_photo_url)
+
+  // Sync state with props when user data changes
+  useEffect(() => {
+    setProfilePhotoUrl(user.profile_photo_url)
+    setFullName(user.full_name)
+  }, [user.profile_photo_url, user.full_name])
 
   const completionRate =
     stats.totalTasks > 0
       ? Math.round((stats.completedTasks / stats.totalTasks) * 100)
       : 0
 
+  const handlePhotoClick = () => {
+    fileInputRef.current?.click()
+  }
+
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      showToast('error', 'Please select an image file')
+      return
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      showToast('error', 'File size must be less than 5MB')
+      return
+    }
+
+    setIsUploading(true)
+
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+
+      const response = await fetch('/api/profile', {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to upload photo')
+      }
+
+      const data = await response.json()
+      setProfilePhotoUrl(data.profile_photo_url)
+      showToast('success', 'Profile photo updated successfully')
+      router.refresh()
+    } catch (error) {
+      console.error('Upload error:', error)
+      showToast('error', error instanceof Error ? error.message : 'Failed to upload photo')
+    } finally {
+      setIsUploading(false)
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
+    }
+  }
+
+  const handleUpdateProfile = async () => {
+    if (!fullName.trim()) {
+      showToast('error', 'Name cannot be empty')
+      return
+    }
+
+    setIsUpdating(true)
+
+    try {
+      const response = await fetch('/api/profile', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ full_name: fullName }),
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to update profile')
+      }
+
+      showToast('success', 'Profile updated successfully')
+      setIsEditModalOpen(false)
+      router.refresh()
+    } catch (error) {
+      console.error('Update error:', error)
+      showToast('error', error instanceof Error ? error.message : 'Failed to update profile')
+    } finally {
+      setIsUpdating(false)
+    }
+  }
+
+  const getInitials = () => {
+    return user.full_name
+      .split(' ')
+      .map((n) => n[0])
+      .join('')
+      .toUpperCase()
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">My Profile</h1>
+        <Button
+          onClick={() => setIsEditModalOpen(true)}
+          variant="primary"
+          className="flex items-center gap-2"
+        >
+          <Edit2 className="h-4 w-4" />
+          Edit Profile
+        </Button>
       </div>
 
       {/* Profile Card */}
       <Card>
-        <div className="flex items-start space-x-6">
-          <div className="h-24 w-24 bg-primary rounded-full flex items-center justify-center text-white text-3xl font-bold">
-            {user.full_name
-              .split(' ')
-              .map((n) => n[0])
-              .join('')
-              .toUpperCase()}
+        <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
+          {/* Profile Photo with Upload */}
+          <div className="relative group">
+            <div className="relative h-32 w-32 rounded-full overflow-hidden border-4 border-gray-200 shadow-lg">
+              {profilePhotoUrl ? (
+                <img
+                  src={profilePhotoUrl}
+                  alt={user.full_name}
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <div className="h-full w-full bg-gradient-to-br from-primary to-blue-600 flex items-center justify-center text-white text-4xl font-bold">
+                  {getInitials()}
+                </div>
+              )}
+              {isUploading && (
+                <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+                  <Loader2 className="h-8 w-8 text-white animate-spin" />
+                </div>
+              )}
+            </div>
+            <button
+              onClick={handlePhotoClick}
+              disabled={isUploading}
+              className="absolute bottom-0 right-0 h-10 w-10 bg-primary text-white rounded-full shadow-lg hover:bg-blue-700 transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Camera className="h-5 w-5" />
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleFileChange}
+              className="hidden"
+            />
           </div>
+
+          {/* User Info */}
           <div className="flex-1">
-            <h2 className="text-2xl font-bold mb-2">{user.full_name}</h2>
-            <div className="space-y-2">
+            <h2 className="text-3xl font-bold mb-3">{user.full_name}</h2>
+            <div className="space-y-3">
               <div className="flex items-center text-gray-600">
-                <Mail className="h-4 w-4 mr-2" />
-                <span>{user.email}</span>
+                <Mail className="h-5 w-5 mr-3 text-gray-400" />
+                <span className="text-base">{user.email}</span>
               </div>
-              <div className="flex items-center space-x-3">
+              <div className="flex items-center gap-4">
                 <div className="flex items-center text-gray-600">
-                  <Shield className="h-4 w-4 mr-2" />
-                  <span className="font-medium">{user.role.name}</span>
+                  <Shield className="h-5 w-5 mr-3 text-gray-400" />
+                  <span className="font-semibold text-base">{user.role.name}</span>
                 </div>
                 <Badge status={user.status} />
               </div>
               {user.role.description && (
-                <p className="text-sm text-gray-500 mt-2">{user.role.description}</p>
+                <p className="text-sm text-gray-500 mt-2 bg-gray-50 p-3 rounded-lg">
+                  {user.role.description}
+                </p>
               )}
             </div>
           </div>
@@ -180,27 +328,83 @@ export default function ProfileClient({ user, stats }: Props) {
 
       {/* Account Info */}
       <Card title="Account Information">
-        <dl className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <dt className="text-sm font-medium text-gray-500">User ID</dt>
-            <dd className="mt-1 text-sm text-gray-900 font-mono">{user.id}</dd>
+        <dl className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="bg-gray-50 p-4 rounded-lg">
+            <dt className="text-sm font-medium text-gray-500 mb-1">User ID</dt>
+            <dd className="text-sm text-gray-900 font-mono break-all">{user.id}</dd>
           </div>
-          <div>
-            <dt className="text-sm font-medium text-gray-500">Status</dt>
+          <div className="bg-gray-50 p-4 rounded-lg">
+            <dt className="text-sm font-medium text-gray-500 mb-1">Status</dt>
             <dd className="mt-1">
               <Badge status={user.status} />
             </dd>
           </div>
-          <div>
-            <dt className="text-sm font-medium text-gray-500">Role</dt>
-            <dd className="mt-1 text-sm text-gray-900">{user.role.name}</dd>
+          <div className="bg-gray-50 p-4 rounded-lg">
+            <dt className="text-sm font-medium text-gray-500 mb-1">Role</dt>
+            <dd className="mt-1 text-sm text-gray-900 font-semibold">{user.role.name}</dd>
           </div>
-          <div>
-            <dt className="text-sm font-medium text-gray-500">Email</dt>
+          <div className="bg-gray-50 p-4 rounded-lg">
+            <dt className="text-sm font-medium text-gray-500 mb-1">Email</dt>
             <dd className="mt-1 text-sm text-gray-900">{user.email}</dd>
           </div>
         </dl>
       </Card>
+
+      {/* Edit Profile Modal */}
+      <Modal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        title="Edit Profile"
+      >
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Full Name
+            </label>
+            <Input
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              placeholder="Enter your full name"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Email
+            </label>
+            <Input
+              value={user.email}
+              disabled
+              className="bg-gray-100 cursor-not-allowed"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Email cannot be changed
+            </p>
+          </div>
+          <div className="flex justify-end gap-3 pt-4">
+            <Button
+              onClick={() => setIsEditModalOpen(false)}
+              variant="ghost"
+              disabled={isUpdating}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleUpdateProfile}
+              variant="primary"
+              disabled={isUpdating}
+            >
+              {isUpdating ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Updating...
+                </>
+              ) : (
+                'Save Changes'
+              )}
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   )
 }
