@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1e40af;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#3b82f6;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="letterGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#fbbf24;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#f59e0b;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background circle -->
+  <circle cx="256" cy="256" r="240" fill="url(#bgGradient)"/>
+  
+  <!-- Decorative wave element (representing sound/recitation waves) -->
+  <path d="M 100 280 Q 150 260, 200 280 T 300 280 T 412 280" 
+        stroke="#60a5fa" 
+        stroke-width="3" 
+        fill="none" 
+        opacity="0.4"/>
+  <path d="M 100 300 Q 150 280, 200 300 T 300 300 T 412 300" 
+        stroke="#60a5fa" 
+        stroke-width="3" 
+        fill="none" 
+        opacity="0.3"/>
+  
+  <!-- Letter "A" -->
+  <g transform="translate(256, 256)">
+    <!-- Main A shape -->
+    <path d="M 0,-120 L 80,120 L 40,120 L 25,70 L -25,70 L -40,120 L -80,120 Z M 0,-50 L 15,30 L -15,30 Z" 
+          fill="url(#letterGradient)"
+          stroke="#fef3c7"
+          stroke-width="4"/>
+    
+    <!-- Inner highlight for depth -->
+    <path d="M 0,-110 L 70,110 L 50,110 L 37,70 L 25,70 L 20,50 L -20,50 L -25,70 L -37,70 L -50,110 L -70,110 Z M 0,-60 L 12,20 L -12,20 Z" 
+          fill="none"
+          stroke="#fde68a"
+          stroke-width="2"
+          opacity="0.5"/>
+  </g>
+  
+  <!-- Decorative dots (representing cultural/artistic elements) -->
+  <circle cx="140" cy="160" r="6" fill="#fbbf24" opacity="0.6"/>
+  <circle cx="372" cy="160" r="6" fill="#fbbf24" opacity="0.6"/>
+  <circle cx="140" cy="352" r="6" fill="#fbbf24" opacity="0.6"/>
+  <circle cx="372" cy="352" r="6" fill="#fbbf24" opacity="0.6"/>
+</svg>
