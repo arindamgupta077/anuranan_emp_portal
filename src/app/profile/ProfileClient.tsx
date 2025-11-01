@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { User, Mail, Shield, CheckCircle, ClipboardList, Calendar, FileText, Camera, Upload, Edit2, Loader2 } from 'lucide-react'
 import Card from '@/components/ui/Card'
 import Button from '@/components/ui/Button'
@@ -43,11 +44,13 @@ export default function ProfileClient({ user, stats }: Props) {
   const [fullName, setFullName] = useState(user.full_name)
   const [isUpdating, setIsUpdating] = useState(false)
   const [profilePhotoUrl, setProfilePhotoUrl] = useState(user.profile_photo_url)
+  const [imageError, setImageError] = useState(false)
 
   // Sync state with props when user data changes
   useEffect(() => {
     setProfilePhotoUrl(user.profile_photo_url)
     setFullName(user.full_name)
+    setImageError(false) // Reset error state when URL changes
   }, [user.profile_photo_url, user.full_name])
 
   const completionRate =
@@ -165,11 +168,19 @@ export default function ProfileClient({ user, stats }: Props) {
           {/* Profile Photo with Upload */}
           <div className="relative group">
             <div className="relative h-32 w-32 rounded-full overflow-hidden border-4 border-gray-200 shadow-lg">
-              {profilePhotoUrl ? (
-                <img
+              {profilePhotoUrl && !imageError ? (
+                <Image
                   src={profilePhotoUrl}
                   alt={user.full_name}
-                  className="h-full w-full object-cover"
+                  fill
+                  className="object-cover"
+                  sizes="128px"
+                  priority
+                  onError={() => {
+                    console.error('Failed to load profile photo:', profilePhotoUrl)
+                    setImageError(true)
+                  }}
+                  unoptimized={profilePhotoUrl.includes('supabase')}
                 />
               ) : (
                 <div className="h-full w-full bg-gradient-to-br from-primary to-blue-600 flex items-center justify-center text-white text-4xl font-bold">
@@ -177,7 +188,7 @@ export default function ProfileClient({ user, stats }: Props) {
                 </div>
               )}
               {isUploading && (
-                <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+                <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center z-10">
                   <Loader2 className="h-8 w-8 text-white animate-spin" />
                 </div>
               )}

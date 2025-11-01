@@ -88,10 +88,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: uploadError.message }, { status: 400 })
     }
 
-    // Get public URL
+    // Get public URL with cache busting
     const { data: { publicUrl } } = supabase.storage
       .from('avatars')
       .getPublicUrl(filePath)
+
+    // Add cache busting parameter to ensure fresh image load
+    const publicUrlWithCacheBust = `${publicUrl}?t=${Date.now()}`
 
     // Update user profile with new photo URL
     const { data, error } = await supabase
@@ -106,7 +109,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: error.message }, { status: 400 })
     }
 
-    return NextResponse.json({ profile_photo_url: publicUrl })
+    // Return URL with cache busting for immediate display
+    return NextResponse.json({ profile_photo_url: publicUrlWithCacheBust })
   } catch (error) {
     console.error('Upload error:', error)
     return NextResponse.json(
