@@ -615,19 +615,27 @@ export default function TasksClient({ user, tasks, employees }: TasksClientProps
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-100">
+              <tbody className="bg-white divide-y-2 divide-gray-300">
                 {paginatedTasks.map((task, index) => {
                   const overdue = task.due_date && isOverdue(task.due_date) && task.status !== 'COMPLETED'
-                  const rowColor = index % 2 === 0 ? 'bg-white' : 'bg-gradient-to-r from-slate-50/50 to-gray-50/30'
+                  
+                  // Background color based on status - light colors for each card
+                  const rowColor = overdue
+                    ? 'bg-gradient-to-r from-rose-50/70 to-red-50/40'
+                    : task.status === 'COMPLETED' 
+                    ? 'bg-gradient-to-r from-emerald-50/60 to-green-50/30' 
+                    : task.status === 'IN_PROGRESS' 
+                    ? 'bg-gradient-to-r from-amber-50/60 to-orange-50/30' 
+                    : 'bg-gradient-to-r from-indigo-50/60 to-blue-50/30'
                   
                   // Hover color based on status - overdue gets priority
                   const hoverColor = overdue
-                    ? 'hover:bg-gradient-to-r hover:from-rose-50 hover:to-red-50/50'
+                    ? 'hover:bg-gradient-to-r hover:from-rose-100/80 hover:to-red-100/50'
                     : task.status === 'COMPLETED' 
-                    ? 'hover:bg-gradient-to-r hover:from-emerald-50 hover:to-green-50/50' 
+                    ? 'hover:bg-gradient-to-r hover:from-emerald-100/80 hover:to-green-100/50' 
                     : task.status === 'IN_PROGRESS' 
-                    ? 'hover:bg-gradient-to-r hover:from-amber-50 hover:to-orange-50/50' 
-                    : 'hover:bg-gradient-to-r hover:from-indigo-50 hover:to-blue-50/50'
+                    ? 'hover:bg-gradient-to-r hover:from-amber-100/80 hover:to-orange-100/50' 
+                    : 'hover:bg-gradient-to-r hover:from-indigo-100/80 hover:to-blue-100/50'
                   
                   return (
                     <tr 
@@ -775,8 +783,33 @@ export default function TasksClient({ user, tasks, employees }: TasksClientProps
             {paginatedTasks.map((task) => {
               const overdue = task.due_date && isOverdue(task.due_date) && task.status !== 'COMPLETED'
               
+              // Background color based on status - light colors for each card
+              const cardBgColor = overdue
+                ? 'bg-gradient-to-br from-rose-50 to-red-50/70'
+                : task.status === 'COMPLETED' 
+                ? 'bg-gradient-to-br from-emerald-50 to-green-50/70' 
+                : task.status === 'IN_PROGRESS' 
+                ? 'bg-gradient-to-br from-amber-50 to-orange-50/70' 
+                : 'bg-gradient-to-br from-indigo-50 to-blue-50/70'
+              
+              const cardHoverColor = overdue
+                ? 'hover:from-rose-100 hover:to-red-100/70'
+                : task.status === 'COMPLETED' 
+                ? 'hover:from-emerald-100 hover:to-green-100/70' 
+                : task.status === 'IN_PROGRESS' 
+                ? 'hover:from-amber-100 hover:to-orange-100/70' 
+                : 'hover:from-indigo-100 hover:to-blue-100/70'
+              
+              const borderColor = overdue
+                ? 'border-rose-200'
+                : task.status === 'COMPLETED' 
+                ? 'border-emerald-200' 
+                : task.status === 'IN_PROGRESS' 
+                ? 'border-amber-200' 
+                : 'border-indigo-200'
+              
               return (
-                <div key={task.id} className="p-4 bg-white hover:bg-gray-50 transition-all cursor-pointer active:bg-gray-100 rounded-lg border-2 border-gray-200 shadow-sm hover:shadow-md" onClick={() => setSelectedTask(task)}>
+                <div key={task.id} className={`p-4 transition-all cursor-pointer active:scale-[0.98] rounded-lg border-2 shadow-sm hover:shadow-md ${cardBgColor} ${cardHoverColor} ${borderColor}`} onClick={() => setSelectedTask(task)}>
                   {/* Task Header */}
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex-1">
