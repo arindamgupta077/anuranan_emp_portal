@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Plus, Filter, AlertCircle, Clock, Eye, CheckCircle, Circle, Loader } from 'lucide-react'
+import { Plus, Filter, AlertCircle, Clock, Eye, CheckCircle, Circle, Loader, Edit, Trash2, X, Save } from 'lucide-react'
 import { Task, TaskStatus, TASK_STATUSES } from '@/lib/types'
 import { formatDate, isOverdue } from '@/lib/utils/date'
 import { useToast } from '@/components/ui/Toast'
@@ -28,13 +28,25 @@ export default function TasksClient({ user, tasks, employees }: TasksClientProps
   const [selectedTask, setSelectedTask] = useState<Task | null>(null)
   const [showAssignModal, setShowAssignModal] = useState(false)
   const [isUpdating, setIsUpdating] = useState(false)
+  const [updatingTaskId, setUpdatingTaskId] = useState<string | null>(null)
   const [statusFilters, setStatusFilters] = useState<TaskStatus[]>(['OPEN', 'IN_PROGRESS'])
   const [currentPage, setCurrentPage] = useState(1)
+  const [isEditMode, setIsEditMode] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [taskComment, setTaskComment] = useState('')
+  const [isSavingComment, setIsSavingComment] = useState(false)
   const router = useRouter()
   const { showToast } = useToast()
 
   const isCEO = user.role.name === 'CEO'
   const ITEMS_PER_PAGE = 50
+
+  // Initialize comment when task is selected
+  useEffect(() => {
+    if (selectedTask) {
+      setTaskComment(selectedTask.comment || '')
+    }
+  }, [selectedTask])
 
   // Assign task form
   const [assignForm, setAssignForm] = useState({
@@ -42,10 +54,21 @@ export default function TasksClient({ user, tasks, employees }: TasksClientProps
     details: '',
     assigned_to: '',
     due_date: '',
+    execution_date: '',
+  })
+
+  // Edit task form
+  const [editForm, setEditForm] = useState({
+    title: '',
+    details: '',
+    assigned_to: '',
+    status: 'OPEN' as TaskStatus,
+    due_date: '',
+    execution_date: '',
   })
 
   const handleStatusUpdate = async (taskId: string, newStatus: TaskStatus) => {
-    setIsUpdating(true)
+    setUpdatingTaskId(taskId)
     try {
       const response = await fetch(`/api/tasks/${taskId}`, {
         method: 'PATCH',
@@ -60,7 +83,7 @@ export default function TasksClient({ user, tasks, employees }: TasksClientProps
     } catch (error) {
       showToast('error', 'Failed to update task status')
     } finally {
-      setIsUpdating(false)
+      setUpdatingTaskId(null)
     }
   }
 
@@ -74,6 +97,8 @@ export default function TasksClient({ user, tasks, employees }: TasksClientProps
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...assignForm,
+          due_date: assignForm.due_date || null,
+          execution_date: assignForm.execution_date || null,
           created_by: user.id,
         }),
       })
@@ -82,12 +107,119 @@ export default function TasksClient({ user, tasks, employees }: TasksClientProps
 
       showToast('success', 'Task assigned successfully')
       setShowAssignModal(false)
-      setAssignForm({ title: '', details: '', assigned_to: '', due_date: '' })
+      setAssignForm({ title: '', details: '', assigned_to: '', due_date: '', execution_date: '' })
       router.refresh()
     } catch (error) {
       showToast('error', 'Failed to assign task')
     } finally {
       setIsUpdating(false)
+    }
+  }
+
+  const handleEditTask = () => {
+    if (selectedTask) {
+      setEditForm({
+        title: selectedTask.title,
+        details: selectedTask.details || '',
+        assigned_to: selectedTask.assigned_to || '',
+        status: selectedTask.status as TaskStatus,
+        due_date: selectedTask.due_date || '',
+        execution_date: selectedTask.execution_date || '',
+      })
+      setIsEditMode(true)
+    }
+  }
+
+  const handleUpdateTask = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!selectedTask) return
+
+    setIsUpdating(true)
+    try {
+      const response = await fetch(`/api/tasks/${selectedTask.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...editForm,
+          due_date: editForm.due_date || null,
+          execution_date: editForm.execution_date || null,
+          updated_by: user.id,
+        }),
+      })
+
+      if (!response.ok) throw new Error('Failed to update task')
+
+      showToast('success', 'Task updated successfully')
+      setIsEditMode(false)
+      setSelectedTask(null)
+      router.refresh()
+    } catch (error) {
+      showToast('error', 'Failed to update task')
+    } finally {
+      setIsUpdating(false)
+    }
+  }
+
+  const handleDeleteTask = async () => {
+    if (!selectedTask) return
+    
+    if (!confirm('Are you sure you want to delete this task? This action cannot be undone.')) {
+      return
+    }
+
+    setIsDeleting(true)
+    try {
+      const response = await fetch(`/api/tasks/${selectedTask.id}`, {
+        method: 'DELETE',
+      })
+
+      if (!response.ok) throw new Error('Failed to delete task')
+
+      showToast('success', 'Task deleted successfully')
+      setSelectedTask(null)
+      setIsEditMode(false)
+      router.refresh()
+    } catch (error) {
+      showToast('error', 'Failed to delete task')
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
+  const handleCancelEdit = () => {
+    setIsEditMode(false)
+    setEditForm({
+      title: '',
+      details: '',
+      assigned_to: '',
+      status: 'OPEN',
+      due_date: '',
+      execution_date: '',
+    })
+  }
+
+  const handleSaveComment = async () => {
+    if (!selectedTask) return
+
+    setIsSavingComment(true)
+    try {
+      const response = await fetch(`/api/tasks/${selectedTask.id}/comment`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          comment: taskComment,
+          updated_by: user.id,
+        }),
+      })
+
+      if (!response.ok) throw new Error('Failed to save comment')
+
+      showToast('success', 'Comment saved successfully')
+      router.refresh()
+    } catch (error) {
+      showToast('error', 'Failed to save comment')
+    } finally {
+      setIsSavingComment(false)
     }
   }
 
@@ -122,7 +254,7 @@ export default function TasksClient({ user, tasks, employees }: TasksClientProps
       case 'COMPLETED':
         return <CheckCircle className="w-4 h-4" />
       case 'IN_PROGRESS':
-        return <Loader className="w-4 h-4" />
+        return <Loader className="w-4 h-4 animate-spin" />
       case 'OPEN':
         return <Circle className="w-4 h-4" />
       default:
@@ -133,20 +265,33 @@ export default function TasksClient({ user, tasks, employees }: TasksClientProps
   const getStatusColor = (status: TaskStatus) => {
     switch (status) {
       case 'COMPLETED':
-        return 'bg-emerald-50 text-emerald-700 border-emerald-300'
+        return 'bg-gradient-to-r from-emerald-50 to-green-50 text-emerald-700 border-emerald-300 shadow-sm'
       case 'IN_PROGRESS':
-        return 'bg-amber-50 text-amber-700 border-amber-300'
+        return 'bg-gradient-to-r from-amber-50 to-orange-50 text-amber-700 border-amber-300 shadow-sm'
       case 'OPEN':
-        return 'bg-indigo-50 text-indigo-700 border-indigo-300'
+        return 'bg-gradient-to-r from-indigo-50 to-blue-50 text-indigo-700 border-indigo-300 shadow-sm'
       default:
         return 'bg-gray-50 text-gray-700 border-gray-300'
     }
   }
 
+  const getStatusDropdownColor = (status: TaskStatus) => {
+    switch (status) {
+      case 'COMPLETED':
+        return 'border-emerald-400 focus:ring-emerald-500 focus:border-emerald-500 bg-emerald-100 text-emerald-800'
+      case 'IN_PROGRESS':
+        return 'border-amber-400 focus:ring-amber-500 focus:border-amber-500 bg-amber-100 text-amber-800'
+      case 'OPEN':
+        return 'border-indigo-400 focus:ring-indigo-500 focus:border-indigo-500 bg-indigo-100 text-indigo-800'
+      default:
+        return 'border-gray-300 focus:ring-indigo-500 focus:border-indigo-500 bg-gray-100 text-gray-800'
+    }
+  }
+
   return (
-    <div className="space-y-4 px-4 md:px-0 pb-8">
+    <div className="space-y-3 md:space-y-4 px-0 md:px-0 pb-8">
       {/* Header - Mobile Optimized */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 md:gap-3 px-4 md:px-0">
         <div>
           <h1 className="text-xl md:text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
             Tasks Management
@@ -166,48 +311,48 @@ export default function TasksClient({ user, tasks, employees }: TasksClientProps
       {/* Statistics - Compact Single Row for Mobile, Cards for Desktop */}
       
       {/* Mobile: Compact Single Row */}
-      <div className="md:hidden">
-        <Card className="bg-white border border-gray-200 shadow-sm p-3">
-          <div className="flex items-center justify-between gap-2 overflow-x-auto hide-scrollbar-mobile">
+      <div className="md:hidden px-4">
+        <Card className="bg-white border border-gray-200 shadow-sm p-2">
+          <div className="flex items-center justify-between gap-1.5 overflow-x-auto hide-scrollbar-mobile">
             {/* Total */}
-            <div className="flex flex-col items-center min-w-[60px]">
-              <Clock className="w-4 h-4 text-blue-600 mb-1" />
+            <div className="flex flex-col items-center min-w-[55px]">
+              <Clock className="w-3.5 h-3.5 text-blue-600 mb-0.5" />
               <p className="text-lg font-bold text-gray-900">{totalTasks}</p>
               <p className="text-[9px] text-gray-600 font-medium">Total</p>
             </div>
             
-            <div className="h-10 w-px bg-gray-200" />
+            <div className="h-8 w-px bg-gray-200" />
             
             {/* Open */}
-            <div className="flex flex-col items-center min-w-[60px]">
-              <Circle className="w-4 h-4 text-indigo-600 mb-1" />
+            <div className="flex flex-col items-center min-w-[55px]">
+              <Circle className="w-3.5 h-3.5 text-indigo-600 mb-0.5" />
               <p className="text-lg font-bold text-gray-900">{openTasks}</p>
               <p className="text-[9px] text-gray-600 font-medium">Open</p>
             </div>
             
-            <div className="h-10 w-px bg-gray-200" />
+            <div className="h-8 w-px bg-gray-200" />
             
             {/* In Progress */}
-            <div className="flex flex-col items-center min-w-[60px]">
-              <Loader className="w-4 h-4 text-amber-600 mb-1" />
+            <div className="flex flex-col items-center min-w-[55px]">
+              <Loader className="w-3.5 h-3.5 text-amber-600 mb-0.5" />
               <p className="text-lg font-bold text-gray-900">{inProgressTasks}</p>
               <p className="text-[9px] text-gray-600 font-medium">Progress</p>
             </div>
             
-            <div className="h-10 w-px bg-gray-200" />
+            <div className="h-8 w-px bg-gray-200" />
             
             {/* Completed */}
-            <div className="flex flex-col items-center min-w-[60px]">
-              <CheckCircle className="w-4 h-4 text-emerald-600 mb-1" />
+            <div className="flex flex-col items-center min-w-[55px]">
+              <CheckCircle className="w-3.5 h-3.5 text-emerald-600 mb-0.5" />
               <p className="text-lg font-bold text-gray-900">{completedTasks}</p>
               <p className="text-[9px] text-gray-600 font-medium">Done</p>
             </div>
             
-            <div className="h-10 w-px bg-gray-200" />
+            <div className="h-8 w-px bg-gray-200" />
             
             {/* Overdue */}
-            <div className="flex flex-col items-center min-w-[60px]">
-              <AlertCircle className="w-4 h-4 text-rose-600 mb-1" />
+            <div className="flex flex-col items-center min-w-[55px]">
+              <AlertCircle className="w-3.5 h-3.5 text-rose-600 mb-0.5" />
               <p className="text-lg font-bold text-gray-900">{overdueTasks}</p>
               <p className="text-[9px] text-gray-600 font-medium">Overdue</p>
             </div>
@@ -279,16 +424,17 @@ export default function TasksClient({ user, tasks, employees }: TasksClientProps
       </div>
 
       {/* Filters - Mobile: Single Line, Desktop: Wrapped */}
-      <Card className="bg-white border border-gray-200 shadow-sm p-3">
-        <div className="flex flex-col gap-2">
+      <div className="px-4 md:px-0">
+        <Card className="bg-white border border-gray-200 shadow-sm p-2">
+        <div className="flex flex-col gap-1.5">
           {/* Filter Label */}
-          <div className="flex items-center gap-2">
-            <Filter className="w-4 h-4 text-indigo-600" />
+          <div className="flex items-center gap-1.5">
+            <Filter className="w-3.5 h-3.5 text-indigo-600" />
             <span className="text-xs font-semibold text-gray-700 uppercase tracking-wide">Filter by status:</span>
           </div>
           
           {/* Filter Buttons - Single scrollable line on mobile, wrapped on desktop */}
-          <div className="flex md:flex-wrap gap-2 overflow-x-auto hide-scrollbar-mobile pb-1">
+          <div className="flex md:flex-wrap gap-2 overflow-x-auto hide-scrollbar-mobile pb-0.5">
             {TASK_STATUSES.map(status => {
               const isActive = statusFilters.includes(status)
               return (
@@ -313,156 +459,183 @@ export default function TasksClient({ user, tasks, employees }: TasksClientProps
           </div>
         </div>
       </Card>
+      </div>
 
       {/* Tasks Table/Cards - Mobile Responsive */}
-      <div className="bg-white rounded-lg shadow-sm overflow-hidden border border-gray-200">
+      <div className="bg-white rounded-lg shadow-sm overflow-hidden border border-gray-200 md:border">
         {filteredTasks.length === 0 ? (
-          <div className="text-center py-12 px-4">
-            <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-gradient-to-br from-indigo-100 to-purple-100 mb-3">
-              <Clock className="w-7 h-7 text-indigo-600" />
+          <div className="text-center py-16 px-4">
+            <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-indigo-100 via-purple-100 to-pink-100 mb-4 shadow-lg">
+              <Clock className="w-10 h-10 text-indigo-600" />
             </div>
-            <h3 className="text-base font-semibold text-gray-900 mb-1">No tasks found</h3>
-            <p className="text-sm text-gray-600">
-              {isCEO ? 'Create your first task to get started' : 'You have no tasks with the selected filters'}
+            <h3 className="text-xl font-bold text-gray-900 mb-2">No tasks found</h3>
+            <p className="text-sm text-gray-600 max-w-md mx-auto">
+              {isCEO ? 'Create your first task to get started and manage your team\'s work efficiently.' : 'You have no tasks with the selected filters. Try adjusting your filters to see more tasks.'}
             </p>
           </div>
         ) : (
           <>
             {/* Desktop Table View - Hidden on mobile */}
             <div className="hidden md:block overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gradient-to-r from-slate-50 to-gray-50">
+            <table className="min-w-full divide-y divide-gray-200 table-fixed">
+              <thead className="bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wide">
+                  <th className="px-4 py-4 text-left text-xs font-bold text-white uppercase tracking-wider w-24">
                     Task ID
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wide">
+                  <th className="px-4 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">
                     Title
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wide">
+                  <th className="px-4 py-4 text-left text-xs font-bold text-white uppercase tracking-wider w-52">
                     Assigned To
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wide">
+                  <th className="px-4 py-4 text-left text-xs font-bold text-white uppercase tracking-wider w-56">
                     Due Date
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wide">
-                    Status
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wide">
-                    Actions
+                  <th className="px-4 py-4 text-left text-xs font-bold text-white uppercase tracking-wider w-48">
+                    <div className="flex items-center gap-2">
+                      Status & Update
+                    </div>
                   </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-100">
                 {paginatedTasks.map((task, index) => {
                   const overdue = task.due_date && isOverdue(task.due_date) && task.status !== 'COMPLETED'
-                  const rowColor = index % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'
+                  const rowColor = index % 2 === 0 ? 'bg-white' : 'bg-gradient-to-r from-slate-50/50 to-gray-50/30'
                   
                   // Hover color based on status - overdue gets priority
                   const hoverColor = overdue
-                    ? 'hover:bg-rose-50/70'
+                    ? 'hover:bg-gradient-to-r hover:from-rose-50 hover:to-red-50/50'
                     : task.status === 'COMPLETED' 
-                    ? 'hover:bg-emerald-50/70' 
+                    ? 'hover:bg-gradient-to-r hover:from-emerald-50 hover:to-green-50/50' 
                     : task.status === 'IN_PROGRESS' 
-                    ? 'hover:bg-amber-50/70' 
-                    : 'hover:bg-indigo-50/70'
+                    ? 'hover:bg-gradient-to-r hover:from-amber-50 hover:to-orange-50/50' 
+                    : 'hover:bg-gradient-to-r hover:from-indigo-50 hover:to-blue-50/50'
                   
                   return (
                     <tr 
-                      key={task.id} 
-                      className={`${rowColor} ${hoverColor} transition-colors duration-200 group`}
+                      key={task.id}
+                      onClick={() => setSelectedTask(task)}
+                      className={`${rowColor} ${hoverColor} transition-all duration-300 group border-l-4 cursor-pointer ${
+                        overdue 
+                          ? 'border-l-rose-500' 
+                          : task.status === 'COMPLETED' 
+                          ? 'border-l-emerald-500' 
+                          : task.status === 'IN_PROGRESS' 
+                          ? 'border-l-amber-500' 
+                          : 'border-l-indigo-500'
+                      }`}
                     >
                       {/* Task Number */}
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-mono font-bold bg-gradient-to-r from-indigo-100 to-purple-100 text-indigo-700 border border-indigo-200">
+                      <td className="px-4 py-4 whitespace-nowrap">
+                        <span className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-mono font-bold bg-gradient-to-br from-indigo-600 to-purple-600 text-white shadow-sm group-hover:shadow-md transition-all duration-300">
                           #{task.task_number}
                         </span>
                       </td>
 
                       {/* Title */}
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-4">
                         <div className="flex flex-col gap-1">
                           <div className="flex items-center gap-2">
-                            <span className="text-sm font-semibold text-gray-900 line-clamp-1 group-hover:text-indigo-700 transition-colors">
+                            <span className="text-sm font-bold text-gray-900 line-clamp-1 group-hover:text-indigo-700 transition-colors duration-200">
                               {task.title}
                             </span>
                             {overdue && (
-                              <div className="flex items-center text-rose-600 bg-rose-50 px-2 py-0.5 rounded-md border border-rose-200">
-                                <AlertCircle className="w-3 h-3 mr-1" />
-                                <span className="text-xs font-semibold">Overdue</span>
+                              <div className="flex items-center text-rose-600 bg-gradient-to-r from-rose-50 to-red-50 px-2.5 py-1 rounded-lg border-2 border-rose-200 shadow-sm animate-pulse">
+                                <AlertCircle className="w-3.5 h-3.5 mr-1" />
+                                <span className="text-xs font-bold tracking-wide">OVERDUE</span>
                               </div>
                             )}
                           </div>
                           {task.details && (
-                            <p className="text-xs text-gray-500 line-clamp-1">{task.details}</p>
+                            <p className="text-xs text-gray-600 line-clamp-1">{task.details}</p>
                           )}
                         </div>
                       </td>
 
                       {/* Assigned To */}
-                      <td className="px-4 py-3 whitespace-nowrap">
+                      <td className="px-4 py-4 whitespace-nowrap">
                         {task.assigned_user ? (
                           <div className="flex items-center">
-                            <div className="flex-shrink-0 h-8 w-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white font-semibold text-sm shadow-sm">
+                            <div className="flex-shrink-0 h-9 w-9 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm shadow-md ring-2 ring-indigo-100 group-hover:ring-4 transition-all duration-300">
                               {task.assigned_user.full_name.charAt(0)}
                             </div>
-                            <div className="ml-2">
-                              <p className="text-sm font-medium text-gray-900">
+                            <div className="ml-3">
+                              <p className="text-sm font-semibold text-gray-900 group-hover:text-indigo-700 transition-colors">
                                 {task.assigned_user.full_name}
                               </p>
                             </div>
                           </div>
                         ) : (
-                          <span className="text-sm text-gray-400 italic">Unassigned</span>
+                          <span className="text-sm text-gray-400 italic font-medium">Unassigned</span>
                         )}
                       </td>
 
                       {/* Due Date */}
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        {task.due_date ? (
-                          <span className={`text-xs font-semibold ${
-                            overdue 
-                              ? 'text-rose-700 bg-rose-50 px-2.5 py-1 rounded-md border border-rose-200' 
-                              : 'text-gray-700 bg-gray-50 px-2.5 py-1 rounded-md border border-gray-200'
-                          }`}>
-                            {formatDate(task.due_date)}
-                          </span>
-                        ) : (
-                          <span className="text-xs text-gray-400 italic">No due date</span>
-                        )}
-                      </td>
-
-                      {/* Status */}
-                      <td className="px-4 py-3 whitespace-nowrap">
+                      <td className="px-4 py-4 whitespace-nowrap">
                         <div className="flex flex-col gap-1.5">
-                          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold border ${getStatusColor(task.status as TaskStatus)}`}>
-                            {getStatusIcon(task.status as TaskStatus)}
-                            {task.status.replace('_', ' ')}
-                          </span>
-                          <select
-                            value={task.status}
-                            onChange={(e) => handleStatusUpdate(task.id, e.target.value as TaskStatus)}
-                            disabled={isUpdating}
-                            className="text-xs px-2 py-1 border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all hover:border-indigo-300"
-                          >
-                            {TASK_STATUSES.map(status => (
-                              <option key={status} value={status}>
-                                {status.replace('_', ' ')}
-                              </option>
-                            ))}
-                          </select>
+                          {task.due_date ? (
+                            <span className={`inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg border-2 shadow-sm transition-all duration-300 ${
+                              overdue 
+                                ? 'text-rose-700 bg-gradient-to-r from-rose-50 to-red-50 border-rose-300' 
+                                : 'text-gray-700 bg-gradient-to-r from-gray-50 to-slate-50 border-gray-300'
+                            }`}>
+                              <Clock className="w-3.5 h-3.5" />
+                              <span className="whitespace-nowrap">Due: {formatDate(task.due_date)}</span>
+                            </span>
+                          ) : (
+                            <span className="text-xs text-gray-400 italic font-medium">No due date</span>
+                          )}
+                          {task.execution_date && (
+                            <span className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg border-2 shadow-sm transition-all duration-300 text-blue-700 bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-300">
+                              <Clock className="w-3.5 h-3.5" />
+                              <span className="whitespace-nowrap">Exec: {formatDate(task.execution_date)}</span>
+                            </span>
+                          )}
                         </div>
                       </td>
 
-                      {/* Actions */}
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        <button
-                          onClick={() => setSelectedTask(task)}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-xs font-semibold rounded-md hover:from-indigo-700 hover:to-purple-700 transition-all duration-200 shadow-sm hover:shadow group-hover:scale-105"
-                        >
-                          <Eye className="w-3.5 h-3.5" />
-                          View
-                        </button>
+                      {/* Status */}
+                      <td className="px-4 py-3 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                        <div className="relative">
+                          <select
+                            value={task.status}
+                            onChange={(e) => handleStatusUpdate(task.id, e.target.value as TaskStatus)}
+                            disabled={updatingTaskId === task.id}
+                            className={`w-full text-xs font-bold px-3 py-2.5 border-2 rounded-lg focus:outline-none focus:ring-2 transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed appearance-none ${getStatusDropdownColor(task.status as TaskStatus)}`}
+                            style={{
+                              backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%236B7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E")`,
+                              backgroundPosition: 'right 0.5rem center',
+                              backgroundRepeat: 'no-repeat',
+                              backgroundSize: '1.5em 1.5em',
+                              paddingRight: '2.5rem'
+                            }}
+                          >
+                            {TASK_STATUSES.map(status => (
+                              <option 
+                                key={status} 
+                                value={status} 
+                                className="font-semibold py-2"
+                                style={{
+                                  backgroundColor: status === 'COMPLETED' ? '#d1fae5' : status === 'IN_PROGRESS' ? '#fef3c7' : '#ddd6fe',
+                                  color: status === 'COMPLETED' ? '#065f46' : status === 'IN_PROGRESS' ? '#92400e' : '#4c1d95',
+                                  padding: '8px'
+                                }}
+                              >
+                                {status === 'COMPLETED' && '✓ '}
+                                {status === 'IN_PROGRESS' && '⟳ '}
+                                {status === 'OPEN' && '○ '}
+                                {status.replace('_', ' ')}
+                              </option>
+                              ))}
+                          </select>
+                          {updatingTaskId === task.id && (
+                            <div className="absolute inset-0 flex items-center justify-center bg-white/80 rounded-lg">
+                              <Loader className="w-4 h-4 animate-spin text-indigo-600" />
+                            </div>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   )
@@ -472,14 +645,14 @@ export default function TasksClient({ user, tasks, employees }: TasksClientProps
           </div>
 
           {/* Mobile Card View - Visible only on mobile */}
-          <div className="md:hidden divide-y divide-gray-200">
+          <div className="md:hidden space-y-3 p-2">
             {paginatedTasks.map((task) => {
               const overdue = task.due_date && isOverdue(task.due_date) && task.status !== 'COMPLETED'
               
               return (
-                <div key={task.id} className="p-4 hover:bg-gray-50 transition-colors">
+                <div key={task.id} className="p-4 bg-white hover:bg-gray-50 transition-all cursor-pointer active:bg-gray-100 rounded-lg border-2 border-gray-200 shadow-sm hover:shadow-md" onClick={() => setSelectedTask(task)}>
                   {/* Task Header */}
-                  <div className="flex items-start justify-between mb-3">
+                  <div className="flex items-start justify-between mb-4">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
                         <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-mono font-bold bg-gradient-to-r from-indigo-100 to-purple-100 text-indigo-700 border border-indigo-200">
@@ -500,11 +673,11 @@ export default function TasksClient({ user, tasks, employees }: TasksClientProps
                   </div>
 
                   {/* Task Details */}
-                  <div className="space-y-2 mb-3">
-                    {/* Assigned To */}
-                    {task.assigned_user && (
+                  <div className="space-y-3 mb-4">
+                    {/* Assigned To - Only show for CEO */}
+                    {isCEO && task.assigned_user && (
                       <div className="flex items-center gap-2">
-                        <div className="flex-shrink-0 h-7 w-7 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white font-semibold text-xs">
+                        <div className="flex-shrink-0 h-8 w-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white font-semibold text-xs">
                           {task.assigned_user.full_name.charAt(0)}
                         </div>
                         <span className="text-xs font-medium text-gray-700">
@@ -525,36 +698,61 @@ export default function TasksClient({ user, tasks, employees }: TasksClientProps
                       </div>
                     )}
 
-                    {/* Status */}
-                    <div className="flex items-center gap-2">
-                      <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded text-xs font-bold border ${getStatusColor(task.status as TaskStatus)}`}>
-                        {getStatusIcon(task.status as TaskStatus)}
-                        {task.status.replace('_', ' ')}
-                      </span>
-                    </div>
+                    {/* Execution Date */}
+                    {task.execution_date && (
+                      <div className="flex items-center gap-2">
+                        <Clock className="w-4 h-4 text-blue-500" />
+                        <span className="text-xs font-semibold text-blue-700">
+                          Exec: {formatDate(task.execution_date)}
+                        </span>
+                      </div>
+                    )}
+
                   </div>
 
                   {/* Actions */}
-                  <div className="flex gap-2">
-                    <select
-                      value={task.status}
-                      onChange={(e) => handleStatusUpdate(task.id, e.target.value as TaskStatus)}
-                      disabled={isUpdating}
-                      className="flex-1 text-xs px-2 py-2 border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 touch-target"
-                    >
-                      {TASK_STATUSES.map(status => (
-                        <option key={status} value={status}>
-                          {status.replace('_', ' ')}
-                        </option>
-                      ))}
-                    </select>
-                    <button
-                      onClick={() => setSelectedTask(task)}
-                      className="inline-flex items-center gap-1.5 px-3 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-xs font-semibold rounded-md active:scale-95 transition-all touch-target"
-                    >
-                      <Eye className="w-3.5 h-3.5" />
-                      View
-                    </button>
+                  <div className="flex gap-3">
+                    <div className="relative flex-1" onClick={(e) => e.stopPropagation()}>
+                      <select
+                        value={task.status}
+                        onChange={(e) => {
+                          e.stopPropagation()
+                          handleStatusUpdate(task.id, e.target.value as TaskStatus)
+                        }}
+                        disabled={updatingTaskId === task.id}
+                        className={`w-full text-[10px] font-bold px-2 py-1.5 border-2 rounded-md focus:outline-none focus:ring-2 transition-all disabled:opacity-50 appearance-none ${getStatusDropdownColor(task.status as TaskStatus)}`}
+                        style={{
+                          backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%236B7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E")`,
+                          backgroundPosition: 'right 0.3rem center',
+                          backgroundRepeat: 'no-repeat',
+                          backgroundSize: '1.2em 1.2em',
+                          paddingRight: '1.8rem'
+                        }}
+                      >
+                        {TASK_STATUSES.map(status => (
+                          <option 
+                            key={status} 
+                            value={status} 
+                            className="font-semibold py-2"
+                            style={{
+                              backgroundColor: status === 'COMPLETED' ? '#d1fae5' : status === 'IN_PROGRESS' ? '#fef3c7' : '#ddd6fe',
+                              color: status === 'COMPLETED' ? '#065f46' : status === 'IN_PROGRESS' ? '#92400e' : '#4c1d95',
+                              padding: '8px'
+                            }}
+                          >
+                            {status === 'COMPLETED' && '✓ '}
+                            {status === 'IN_PROGRESS' && '⟳ '}
+                            {status === 'OPEN' && '○ '}
+                            {status.replace('_', ' ')}
+                          </option>
+                        ))}
+                      </select>
+                      {updatingTaskId === task.id && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-white/80 rounded-lg">
+                          <Loader className="w-4 h-4 animate-spin text-indigo-600" />
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               )
@@ -647,102 +845,290 @@ export default function TasksClient({ user, tasks, employees }: TasksClientProps
       {selectedTask && (
         <Modal
           isOpen={!!selectedTask}
-          onClose={() => setSelectedTask(null)}
-          title={`Task Details`}
+          onClose={() => {
+            setSelectedTask(null)
+            setIsEditMode(false)
+            setTaskComment('')
+          }}
+          title={isEditMode ? 'Edit Task' : 'Task Details'}
           size="lg"
         >
-          <div className="space-y-6">
-            {/* Task Header */}
-            <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg p-6 border border-indigo-100">
-              <div className="flex items-center justify-between mb-3">
-                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-mono font-semibold bg-indigo-600 text-white">
-                  #{selectedTask.task_number}
-                </span>
-                <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border ${getStatusColor(selectedTask.status as TaskStatus)}`}>
-                  {getStatusIcon(selectedTask.status as TaskStatus)}
-                  {selectedTask.status.replace('_', ' ')}
-                </span>
-              </div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-2">{selectedTask.title}</h3>
-              {selectedTask.due_date && isOverdue(selectedTask.due_date) && selectedTask.status !== 'COMPLETED' && (
-                <div className="flex items-center text-red-600 bg-red-50 px-3 py-2 rounded-lg">
-                  <AlertCircle className="w-4 h-4 mr-2" />
-                  <span className="text-sm font-medium">This task is overdue!</span>
+          {!isEditMode ? (
+            // View Mode
+            <div className="space-y-6">
+              {/* Task Header */}
+              <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg p-6 border border-indigo-100">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="inline-flex items-center px-4 py-2 rounded-xl text-sm font-mono font-bold bg-gradient-to-br from-indigo-600 to-purple-600 text-white shadow-lg">
+                    #{selectedTask.task_number}
+                  </span>
+                  <span className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold border-2 shadow-lg ${getStatusColor(selectedTask.status as TaskStatus)}`}>
+                    {getStatusIcon(selectedTask.status as TaskStatus)}
+                    <span className="tracking-wide">{selectedTask.status.replace('_', ' ')}</span>
+                  </span>
                 </div>
-              )}
-            </div>
-
-            {/* Task Details */}
-            {selectedTask.details && (
-              <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                <h4 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
-                  <div className="w-1 h-4 bg-indigo-600 rounded"></div>
-                  Description
-                </h4>
-                <p className="text-gray-700 leading-relaxed">{selectedTask.details}</p>
-              </div>
-            )}
-
-            {/* Task Info Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {selectedTask.assigned_user && (
-                <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
-                  <h4 className="text-xs font-semibold text-blue-700 uppercase tracking-wide mb-2">Assigned To</h4>
-                  <div className="flex items-center gap-3">
-                    <div className="flex-shrink-0 h-10 w-10 rounded-full bg-gradient-to-br from-blue-400 to-indigo-400 flex items-center justify-center text-white font-semibold">
-                      {selectedTask.assigned_user.full_name.charAt(0)}
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold text-gray-900">{selectedTask.assigned_user.full_name}</p>
-                      <p className="text-xs text-gray-600">{selectedTask.assigned_user.email}</p>
-                    </div>
+                <h3 className="text-2xl font-bold text-gray-900 mb-2">{selectedTask.title}</h3>
+                {selectedTask.due_date && isOverdue(selectedTask.due_date) && selectedTask.status !== 'COMPLETED' && (
+                  <div className="flex items-center text-red-600 bg-red-50 px-3 py-2 rounded-lg">
+                    <AlertCircle className="w-4 h-4 mr-2" />
+                    <span className="text-sm font-medium">This task is overdue!</span>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
 
-              {selectedTask.created_user && (
-                <div className="bg-purple-50 rounded-lg p-4 border border-purple-200">
-                  <h4 className="text-xs font-semibold text-purple-700 uppercase tracking-wide mb-2">Created By</h4>
-                  <div className="flex items-center gap-3">
-                    <div className="flex-shrink-0 h-10 w-10 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center text-white font-semibold">
-                      {selectedTask.created_user.full_name.charAt(0)}
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold text-gray-900">{selectedTask.created_user.full_name}</p>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {selectedTask.due_date && (
-                <div className={`rounded-lg p-4 border ${
-                  isOverdue(selectedTask.due_date) && selectedTask.status !== 'COMPLETED'
-                    ? 'bg-red-50 border-red-200'
-                    : 'bg-green-50 border-green-200'
-                }`}>
-                  <h4 className={`text-xs font-semibold uppercase tracking-wide mb-2 ${
-                    isOverdue(selectedTask.due_date) && selectedTask.status !== 'COMPLETED'
-                      ? 'text-red-700'
-                      : 'text-green-700'
-                  }`}>
-                    Due Date
+              {/* Task Details */}
+              {selectedTask.details && (
+                <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                  <h4 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                    <div className="w-1 h-4 bg-indigo-600 rounded"></div>
+                    Description
                   </h4>
-                  <p className={`text-sm font-semibold ${
-                    isOverdue(selectedTask.due_date) && selectedTask.status !== 'COMPLETED'
-                      ? 'text-red-900'
-                      : 'text-gray-900'
-                  }`}>
-                    {formatDate(selectedTask.due_date)}
-                  </p>
+                  <p className="text-gray-700 leading-relaxed">{selectedTask.details}</p>
                 </div>
               )}
 
-              <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                <h4 className="text-xs font-semibold text-gray-700 uppercase tracking-wide mb-2">Created On</h4>
-                <p className="text-sm font-semibold text-gray-900">{formatDate(selectedTask.created_at)}</p>
+              {/* Task Info Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {selectedTask.assigned_user && (
+                  <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                    <h4 className="text-xs font-semibold text-blue-700 uppercase tracking-wide mb-2">Assigned To</h4>
+                    <div className="flex items-center gap-3">
+                      <div className="flex-shrink-0 h-10 w-10 rounded-full bg-gradient-to-br from-blue-400 to-indigo-400 flex items-center justify-center text-white font-semibold">
+                        {selectedTask.assigned_user.full_name.charAt(0)}
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-gray-900">{selectedTask.assigned_user.full_name}</p>
+                        <p className="text-xs text-gray-600">{selectedTask.assigned_user.email}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {selectedTask.created_user && (
+                  <div className="bg-purple-50 rounded-lg p-4 border border-purple-200">
+                    <h4 className="text-xs font-semibold text-purple-700 uppercase tracking-wide mb-2">Created By</h4>
+                    <div className="flex items-center gap-3">
+                      <div className="flex-shrink-0 h-10 w-10 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center text-white font-semibold">
+                        {selectedTask.created_user.full_name.charAt(0)}
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-gray-900">{selectedTask.created_user.full_name}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {selectedTask.due_date && (
+                  <div className={`rounded-lg p-4 border ${
+                    isOverdue(selectedTask.due_date) && selectedTask.status !== 'COMPLETED'
+                      ? 'bg-red-50 border-red-200'
+                      : 'bg-green-50 border-green-200'
+                  }`}>
+                    <h4 className={`text-xs font-semibold uppercase tracking-wide mb-2 ${
+                      isOverdue(selectedTask.due_date) && selectedTask.status !== 'COMPLETED'
+                        ? 'text-red-700'
+                        : 'text-green-700'
+                    }`}>
+                      Due Date
+                    </h4>
+                    <p className={`text-sm font-semibold ${
+                      isOverdue(selectedTask.due_date) && selectedTask.status !== 'COMPLETED'
+                        ? 'text-red-900'
+                        : 'text-gray-900'
+                    }`}>
+                      {formatDate(selectedTask.due_date)}
+                    </p>
+                  </div>
+                )}
+
+                {selectedTask.execution_date && (
+                  <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                    <h4 className="text-xs font-semibold text-blue-700 uppercase tracking-wide mb-2">Execution Date</h4>
+                    <p className="text-sm font-semibold text-gray-900">{formatDate(selectedTask.execution_date)}</p>
+                  </div>
+                )}
+
+                <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                  <h4 className="text-xs font-semibold text-gray-700 uppercase tracking-wide mb-2">Created On</h4>
+                  <p className="text-sm font-semibold text-gray-900">{formatDate(selectedTask.created_at)}</p>
+                </div>
               </div>
+
+              {/* Comment Section - For Non-CEO Assigned Employees */}
+              {!isCEO && selectedTask.assigned_to === user.id && (
+                <div className="bg-gradient-to-r from-amber-50 to-yellow-50 rounded-lg p-5 border-2 border-amber-200">
+                  <h4 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
+                    <div className="w-1 h-5 bg-amber-600 rounded"></div>
+                    Add Your Comment
+                  </h4>
+                  <Textarea
+                    value={taskComment}
+                    onChange={(e) => setTaskComment(e.target.value)}
+                    placeholder="Share updates, progress notes, or any comments about this task..."
+                    rows={4}
+                    className="border-amber-300 focus:border-amber-500 focus:ring-amber-500 mb-3"
+                  />
+                  <div className="flex justify-end">
+                    <Button
+                      type="button"
+                      onClick={handleSaveComment}
+                      isLoading={isSavingComment}
+                      className="bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700"
+                    >
+                      <Save className="w-4 h-4 mr-2" />
+                      Save Comment
+                    </Button>
+                  </div>
+                  {selectedTask.comment && (
+                    <div className="mt-4 p-4 bg-white rounded-lg border border-amber-200">
+                      <p className="text-xs font-semibold text-amber-700 uppercase tracking-wide mb-2">Previous Comment</p>
+                      <p className="text-sm text-gray-700 leading-relaxed">{selectedTask.comment}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Comment Display - For CEO viewing tasks with comments */}
+              {isCEO && selectedTask.comment && (
+                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-5 border-2 border-blue-200">
+                  <h4 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
+                    <div className="w-1 h-5 bg-blue-600 rounded"></div>
+                    Employee Comment
+                  </h4>
+                  <div className="p-4 bg-white rounded-lg border border-blue-200">
+                    <p className="text-sm text-gray-700 leading-relaxed">{selectedTask.comment}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              {isCEO && (
+                <div className="flex justify-between gap-3 pt-6 border-t border-gray-200">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={handleDeleteTask}
+                    isLoading={isDeleting}
+                    className="bg-red-600 hover:bg-red-700 text-white border-red-600"
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Delete Task
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={handleEditTask}
+                    className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
+                  >
+                    <Edit className="w-4 h-4 mr-2" />
+                    Edit Task
+                  </Button>
+                </div>
+              )}
             </div>
-          </div>
+          ) : (
+            // Edit Mode
+            <form onSubmit={handleUpdateTask} className="space-y-5">
+              <div className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-lg p-4 border border-amber-200 mb-4">
+                <p className="text-sm text-gray-700">
+                  <strong>Editing Task #{selectedTask.task_number}</strong> - Update any field below and save changes.
+                </p>
+              </div>
+
+              <div className="space-y-1">
+                <Input
+                  label="Task Title"
+                  value={editForm.title}
+                  onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
+                  required
+                  placeholder="Enter a clear and concise task title"
+                  className="border-gray-300 focus:border-indigo-500 focus:ring-indigo-500"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <Textarea
+                  label="Task Details"
+                  value={editForm.details}
+                  onChange={(e) => setEditForm({ ...editForm, details: e.target.value })}
+                  placeholder="Provide detailed description of the task requirements..."
+                  rows={4}
+                  className="border-gray-300 focus:border-indigo-500 focus:ring-indigo-500"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <Select
+                  label="Assign To"
+                  value={editForm.assigned_to}
+                  onChange={(e) => setEditForm({ ...editForm, assigned_to: e.target.value })}
+                  required
+                  options={[
+                    { value: '', label: 'Select an employee' },
+                    ...employees.map(emp => ({ value: emp.id, label: emp.full_name }))
+                  ]}
+                  className="border-gray-300 focus:border-indigo-500 focus:ring-indigo-500"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <Select
+                  label="Status"
+                  value={editForm.status}
+                  onChange={(e) => setEditForm({ ...editForm, status: e.target.value as TaskStatus })}
+                  required
+                  options={TASK_STATUSES.map(status => ({
+                    value: status,
+                    label: status.replace('_', ' ')
+                  }))}
+                  className="border-gray-300 focus:border-indigo-500 focus:ring-indigo-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <Input
+                    type="date"
+                    label="Due Date (Optional)"
+                    value={editForm.due_date}
+                    onChange={(e) => setEditForm({ ...editForm, due_date: e.target.value })}
+                    className="border-gray-300 focus:border-indigo-500 focus:ring-indigo-500"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Target completion date</p>
+                </div>
+
+                <div className="space-y-1">
+                  <Input
+                    type="date"
+                    label="Execution Date (Optional)"
+                    value={editForm.execution_date}
+                    onChange={(e) => setEditForm({ ...editForm, execution_date: e.target.value })}
+                    className="border-gray-300 focus:border-indigo-500 focus:ring-indigo-500"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Date when the task should be executed</p>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-6 border-t border-gray-200">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={handleCancelEdit}
+                  disabled={isUpdating}
+                >
+                  <X className="w-4 h-4 mr-2" />
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  isLoading={isUpdating}
+                  className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
+                >
+                  <Save className="w-4 h-4 mr-2" />
+                  Save Changes
+                </Button>
+              </div>
+            </form>
+          )}
         </Modal>
       )}
 
@@ -797,15 +1183,28 @@ export default function TasksClient({ user, tasks, employees }: TasksClientProps
               />
             </div>
 
-            <div className="space-y-1">
-              <Input
-                type="date"
-                label="Due Date"
-                value={assignForm.due_date}
-                onChange={(e) => setAssignForm({ ...assignForm, due_date: e.target.value })}
-                required
-                className="border-gray-300 focus:border-indigo-500 focus:ring-indigo-500"
-              />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <Input
+                  type="date"
+                  label="Due Date (Optional)"
+                  value={assignForm.due_date}
+                  onChange={(e) => setAssignForm({ ...assignForm, due_date: e.target.value })}
+                  className="border-gray-300 focus:border-indigo-500 focus:ring-indigo-500"
+                />
+                <p className="text-xs text-gray-500 mt-1">Target completion date</p>
+              </div>
+
+              <div className="space-y-1">
+                <Input
+                  type="date"
+                  label="Execution Date (Optional)"
+                  value={assignForm.execution_date}
+                  onChange={(e) => setAssignForm({ ...assignForm, execution_date: e.target.value })}
+                  className="border-gray-300 focus:border-indigo-500 focus:ring-indigo-500"
+                />
+                <p className="text-xs text-gray-500 mt-1">Date when the task should be executed</p>
+              </div>
             </div>
 
             <div className="flex justify-end gap-3 pt-6 border-t border-gray-200">

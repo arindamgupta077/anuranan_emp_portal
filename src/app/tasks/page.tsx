@@ -36,7 +36,7 @@ export default async function TasksPage({ searchParams }: { searchParams: { stat
       created_user:users!created_by(id, full_name)
     `)
     .in('status', statusFilter)
-    .order('due_date', { ascending: true, nullsFirst: false })
+    .order('due_date', { ascending: true, nullsFirst: true })
 
   if (!isCEO) {
     tasksQuery = tasksQuery.eq('assigned_to', user.id)

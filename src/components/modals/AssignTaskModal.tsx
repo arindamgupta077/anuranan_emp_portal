@@ -22,7 +22,8 @@ export default function AssignTaskModal({ isOpen, onClose, onSuccess }: AssignTa
     title: '',
     details: '',
     assigned_to: '',
-    due_date: ''
+    due_date: '',
+    execution_date: ''
   })
 
   // Fetch employees when modal opens
@@ -52,7 +53,11 @@ export default function AssignTaskModal({ isOpen, onClose, onSuccess }: AssignTa
       const response = await fetch('/api/tasks', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        body: JSON.stringify({
+          ...formData,
+          due_date: formData.due_date || null,
+          execution_date: formData.execution_date || null
+        })
       })
 
       if (response.ok) {
@@ -61,7 +66,8 @@ export default function AssignTaskModal({ isOpen, onClose, onSuccess }: AssignTa
           title: '',
           details: '',
           assigned_to: '',
-          due_date: ''
+          due_date: '',
+          execution_date: ''
         })
         
         // Call success callback if provided
@@ -92,7 +98,8 @@ export default function AssignTaskModal({ isOpen, onClose, onSuccess }: AssignTa
         title: '',
         details: '',
         assigned_to: '',
-        due_date: ''
+        due_date: '',
+        execution_date: ''
       })
       onClose()
     }
@@ -148,15 +155,28 @@ export default function AssignTaskModal({ isOpen, onClose, onSuccess }: AssignTa
           />
         </div>
 
-        <div className="space-y-1">
-          <Input
-            type="date"
-            label="Due Date"
-            value={formData.due_date}
-            onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
-            required
-            className="border-gray-300 focus:border-indigo-500 focus:ring-indigo-500"
-          />
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-1">
+            <Input
+              type="date"
+              label="Due Date (Optional)"
+              value={formData.due_date}
+              onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
+              className="border-gray-300 focus:border-indigo-500 focus:ring-indigo-500"
+            />
+            <p className="text-xs text-gray-500 mt-1">Target completion date</p>
+          </div>
+
+          <div className="space-y-1">
+            <Input
+              type="date"
+              label="Execution Date (Optional)"
+              value={formData.execution_date}
+              onChange={(e) => setFormData({ ...formData, execution_date: e.target.value })}
+              className="border-gray-300 focus:border-indigo-500 focus:ring-indigo-500"
+            />
+            <p className="text-xs text-gray-500 mt-1">Date when the task should be executed</p>
+          </div>
         </div>
 
         <div className="flex justify-end gap-3 pt-6 border-t border-gray-200">

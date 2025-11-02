@@ -130,6 +130,7 @@ export default function AdminClient({ employees, roles, recurringTasks }: Props)
     title: '',
     description: '',
     due_date: '',
+    execution_date: '',
     assigned_to: '',
   })
 
@@ -253,7 +254,8 @@ export default function AdminClient({ employees, roles, recurringTasks }: Props)
           title: taskForm.title,
           details: taskForm.description,
           assigned_to: taskForm.assigned_to,
-          due_date: taskForm.due_date,
+          due_date: taskForm.due_date || null,
+          execution_date: taskForm.execution_date || null,
         }),
       })
 
@@ -264,6 +266,7 @@ export default function AdminClient({ employees, roles, recurringTasks }: Props)
         title: '',
         description: '',
         due_date: '',
+        execution_date: '',
         assigned_to: '',
       })
       router.refresh()
@@ -690,14 +693,26 @@ export default function AdminClient({ employees, roles, recurringTasks }: Props)
                 />
               </div>
 
-              <div className="space-y-2">
-                <Input
-                  label="Due Date"
-                  type="date"
-                  value={taskForm.due_date}
-                  onChange={(e) => setTaskForm({ ...taskForm, due_date: e.target.value })}
-                  required
-                />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Input
+                    label="Due Date (Optional)"
+                    type="date"
+                    value={taskForm.due_date}
+                    onChange={(e) => setTaskForm({ ...taskForm, due_date: e.target.value })}
+                  />
+                  <p className="text-xs text-gray-500">Target completion date</p>
+                </div>
+
+                <div className="space-y-2">
+                  <Input
+                    label="Execution Date (Optional)"
+                    type="date"
+                    value={taskForm.execution_date}
+                    onChange={(e) => setTaskForm({ ...taskForm, execution_date: e.target.value })}
+                  />
+                  <p className="text-xs text-gray-500">Date when the task should be executed</p>
+                </div>
               </div>
 
               <div className="space-y-2">
@@ -728,6 +743,7 @@ export default function AdminClient({ employees, roles, recurringTasks }: Props)
                     title: '',
                     description: '',
                     due_date: '',
+                    execution_date: '',
                     assigned_to: '',
                   })}
                   className="w-full sm:w-auto"

@@ -71,8 +71,10 @@ export interface Database {
           assigned_to: string | null
           created_by: string | null
           due_date: string | null
+          execution_date: string | null
           recurring_task_id: string | null
           updated_by: string | null
+          comment: string | null
           created_at: string
           updated_at: string
         }
@@ -85,8 +87,10 @@ export interface Database {
           assigned_to?: string | null
           created_by?: string | null
           due_date?: string | null
+          execution_date?: string | null
           recurring_task_id?: string | null
           updated_by?: string | null
+          comment?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -99,8 +103,10 @@ export interface Database {
           assigned_to?: string | null
           created_by?: string | null
           due_date?: string | null
+          execution_date?: string | null
           recurring_task_id?: string | null
           updated_by?: string | null
+          comment?: string | null
           created_at?: string
           updated_at?: string
         }

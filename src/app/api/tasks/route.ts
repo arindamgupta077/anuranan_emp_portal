@@ -11,7 +11,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json()
-    const { title, details, assigned_to, due_date, created_by } = body
+    const { title, details, assigned_to, due_date, execution_date, created_by } = body
 
     const { data, error } = await supabase
       .from('tasks')
@@ -20,6 +20,7 @@ export async function POST(request: Request) {
         details,
         assigned_to,
         due_date,
+        execution_date: execution_date || null,
         created_by,
         status: 'OPEN',
       })
@@ -54,7 +55,7 @@ export async function GET(request: Request) {
         assigned_user:users!assigned_to(id, full_name, email),
         created_user:users!created_by(id, full_name)
       `)
-      .order('due_date', { ascending: true, nullsFirst: false })
+      .order('due_date', { ascending: true, nullsFirst: true })
 
     if (status && status.length > 0) {
       query = query.in('status', status)
