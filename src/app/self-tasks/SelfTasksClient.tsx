@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { Plus, Edit2, Trash2, Calendar, User, Filter, Clock, CheckCircle2, TrendingUp, Sparkles } from 'lucide-react'
 import { SelfTask } from '@/lib/types'
 import { formatDate, formatDateTime, getToday } from '@/lib/utils/date'
@@ -381,8 +382,20 @@ export default function SelfTasksClient({ user, selfTasks, employees }: SelfTask
                         {/* Enhanced Employee Name for CEO */}
                         {isCEO && task.user && (
                           <div className="flex items-center gap-2 md:gap-3 mb-3 md:mb-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg md:rounded-xl p-2 md:p-3 border border-blue-100">
-                            <div className="bg-gradient-to-br from-blue-500 to-purple-600 p-1.5 md:p-2 rounded-md md:rounded-lg shadow-md">
-                              <User className="w-3.5 h-3.5 md:w-4 md:h-4 text-white" />
+                            <div className="relative w-8 h-8 md:w-10 md:h-10 rounded-md md:rounded-lg overflow-hidden bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-md flex-shrink-0">
+                              {task.user.profile_photo_url ? (
+                                <Image
+                                  src={task.user.profile_photo_url}
+                                  alt={task.user.full_name}
+                                  fill
+                                  className="object-cover"
+                                  unoptimized={task.user.profile_photo_url.includes('supabase')}
+                                />
+                              ) : (
+                                <span className="text-white text-sm md:text-base font-bold">
+                                  {task.user.full_name.charAt(0).toUpperCase()}
+                                </span>
+                              )}
                             </div>
                             <div className="flex-1">
                               <span className="text-[10px] md:text-xs font-medium text-gray-600 block">Employee</span>

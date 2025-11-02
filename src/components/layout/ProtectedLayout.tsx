@@ -8,6 +8,7 @@ interface ProtectedLayoutProps {
   children: ReactNode
   user: {
     full_name: string
+    profile_photo_url?: string | null
     role: {
       name: string
     }

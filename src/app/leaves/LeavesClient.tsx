@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { Plus, Check, X, Edit2, Trash2, Calendar as CalendarIcon, Filter, Users, ChevronLeft, ChevronRight } from 'lucide-react'
 import { Leave, LeaveStatus } from '@/lib/types'
 import { formatDate, calculateDuration } from '@/lib/utils/date'
@@ -574,8 +575,18 @@ export default function LeavesClient({ user, leaves, employees }: LeavesClientPr
                         {/* Employee Name (for CEO) */}
                         {isCEO && leave.user && (
                           <div className="flex items-center gap-2 mb-2">
-                            <div className="w-8 h-8 rounded-full bg-primary-600 flex items-center justify-center text-white font-semibold text-sm">
-                              {leave.user.full_name.charAt(0).toUpperCase()}
+                            <div className="relative w-8 h-8 rounded-full bg-primary-600 flex items-center justify-center text-white font-semibold text-sm overflow-hidden flex-shrink-0">
+                              {leave.user.profile_photo_url ? (
+                                <Image
+                                  src={leave.user.profile_photo_url}
+                                  alt={leave.user.full_name}
+                                  fill
+                                  className="object-cover"
+                                  unoptimized={leave.user.profile_photo_url.includes('supabase')}
+                                />
+                              ) : (
+                                <span>{leave.user.full_name.charAt(0).toUpperCase()}</span>
+                              )}
                             </div>
                             <span className="text-base font-semibold text-gray-900">
                               {leave.user.full_name}

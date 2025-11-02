@@ -16,7 +16,7 @@ export default async function TasksPage({ searchParams }: { searchParams: { stat
 
   const { data: user } = await supabase
     .from('users')
-    .select('*, role:roles(*)')
+    .select('*, role:roles(*), profile_photo_url')
     .eq('id', authUser.id)
     .single()
 
@@ -29,8 +29,8 @@ export default async function TasksPage({ searchParams }: { searchParams: { stat
     .from('tasks')
     .select(`
       *,
-      assigned_user:users!assigned_to(id, full_name, email),
-      created_user:users!created_by(id, full_name)
+      assigned_user:users!assigned_to(id, full_name, email, profile_photo_url),
+      created_user:users!created_by(id, full_name, profile_photo_url)
     `)
     .order('due_date', { ascending: true, nullsFirst: true })
 

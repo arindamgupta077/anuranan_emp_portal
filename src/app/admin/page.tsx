@@ -16,13 +16,13 @@ export default async function AdminPage() {
     redirect('/login')
   }
 
-  const { data: userData } = await supabase
+  const { data: user } = await supabase
     .from('users')
-    .select('*, role:roles(*)')
+    .select('*, role:roles(*), profile_photo_url')
     .eq('id', authUser.id)
     .single()
 
-  if (!userData || userData.role?.name !== 'CEO') {
+  if (!user || user.role?.name !== 'CEO') {
     redirect('/dashboard')
   }
 
@@ -47,7 +47,7 @@ export default async function AdminPage() {
   ])
 
   return (
-    <ProtectedLayout user={userData}>
+    <ProtectedLayout user={user}>
       <AdminClient
         employees={employees || []}
         roles={roles || []}

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { Plus, Filter, AlertCircle, Clock, Eye, CheckCircle, Circle, Loader, Edit, Trash2, X, Save, Users, BarChart3, Clipboard } from 'lucide-react'
 import { Task, TaskStatus, TASK_STATUSES } from '@/lib/types'
 import { formatDate, isOverdue } from '@/lib/utils/date'
@@ -673,8 +674,18 @@ export default function TasksClient({ user, tasks, employees }: TasksClientProps
                       <td className="px-4 py-4 whitespace-nowrap">
                         {task.assigned_user ? (
                           <div className="flex items-center">
-                            <div className="flex-shrink-0 h-9 w-9 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm shadow-md ring-2 ring-indigo-100 group-hover:ring-4 transition-all duration-300">
-                              {task.assigned_user.full_name.charAt(0)}
+                            <div className="relative flex-shrink-0 h-9 w-9 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm shadow-md ring-2 ring-indigo-100 group-hover:ring-4 transition-all duration-300 overflow-hidden">
+                              {task.assigned_user.profile_photo_url ? (
+                                <Image
+                                  src={task.assigned_user.profile_photo_url}
+                                  alt={task.assigned_user.full_name}
+                                  fill
+                                  className="object-cover"
+                                  unoptimized={task.assigned_user.profile_photo_url.includes('supabase')}
+                                />
+                              ) : (
+                                <span>{task.assigned_user.full_name.charAt(0)}</span>
+                              )}
                             </div>
                             <div className="ml-3">
                               <p className="text-sm font-semibold text-gray-900 group-hover:text-indigo-700 transition-colors">
@@ -792,8 +803,18 @@ export default function TasksClient({ user, tasks, employees }: TasksClientProps
                     {/* Assigned To - Only show for CEO */}
                     {isCEO && task.assigned_user && (
                       <div className="flex items-center gap-2">
-                        <div className="flex-shrink-0 h-8 w-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white font-semibold text-xs">
-                          {task.assigned_user.full_name.charAt(0)}
+                        <div className="relative flex-shrink-0 h-8 w-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white font-semibold text-xs overflow-hidden">
+                          {task.assigned_user.profile_photo_url ? (
+                            <Image
+                              src={task.assigned_user.profile_photo_url}
+                              alt={task.assigned_user.full_name}
+                              fill
+                              className="object-cover"
+                              unoptimized={task.assigned_user.profile_photo_url.includes('supabase')}
+                            />
+                          ) : (
+                            <span>{task.assigned_user.full_name.charAt(0)}</span>
+                          )}
                         </div>
                         <span className="text-xs font-medium text-gray-700">
                           {task.assigned_user.full_name}
@@ -1122,8 +1143,18 @@ export default function TasksClient({ user, tasks, employees }: TasksClientProps
                   <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
                     <h4 className="text-xs font-semibold text-blue-700 uppercase tracking-wide mb-2">Assigned To</h4>
                     <div className="flex items-center gap-3">
-                      <div className="flex-shrink-0 h-10 w-10 rounded-full bg-gradient-to-br from-blue-400 to-indigo-400 flex items-center justify-center text-white font-semibold">
-                        {selectedTask.assigned_user.full_name.charAt(0)}
+                      <div className="relative flex-shrink-0 h-10 w-10 rounded-full bg-gradient-to-br from-blue-400 to-indigo-400 flex items-center justify-center text-white font-semibold overflow-hidden">
+                        {selectedTask.assigned_user.profile_photo_url ? (
+                          <Image
+                            src={selectedTask.assigned_user.profile_photo_url}
+                            alt={selectedTask.assigned_user.full_name}
+                            fill
+                            className="object-cover"
+                            unoptimized={selectedTask.assigned_user.profile_photo_url.includes('supabase')}
+                          />
+                        ) : (
+                          <span>{selectedTask.assigned_user.full_name.charAt(0)}</span>
+                        )}
                       </div>
                       <div>
                         <p className="text-sm font-semibold text-gray-900">{selectedTask.assigned_user.full_name}</p>

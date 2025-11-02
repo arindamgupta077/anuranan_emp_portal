@@ -23,7 +23,7 @@ export default async function DashboardPage() {
   // Fetch user with role
   const { data: user, error: userError } = await supabase
     .from('users')
-    .select('*, role:roles(*)')
+    .select('*, role:roles(*), profile_photo_url')
     .eq('id', authUser.id)
     .single()
 

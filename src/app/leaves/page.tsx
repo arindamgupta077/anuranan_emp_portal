@@ -16,7 +16,7 @@ export default async function LeavesPage() {
 
   const { data: user } = await supabase
     .from('users')
-    .select('*, role:roles(*)')
+    .select('*, role:roles(*), profile_photo_url')
     .eq('id', authUser.id)
     .single()
 
@@ -29,8 +29,8 @@ export default async function LeavesPage() {
     .from('leaves')
     .select(`
       *,
-      user:users!user_id(id, full_name, email),
-      approver:users!approved_by(id, full_name)
+      user:users!user_id(id, full_name, email, profile_photo_url),
+      approver:users!approved_by(id, full_name, profile_photo_url)
     `)
     .order('created_at', { ascending: false })
 

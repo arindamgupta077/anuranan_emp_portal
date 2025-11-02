@@ -16,13 +16,13 @@ export default async function ReportsPage() {
     redirect('/login')
   }
 
-  const { data: userData } = await supabase
+  const { data: user } = await supabase
     .from('users')
-    .select('*, role:roles(*)')
+    .select('*, role:roles(*), profile_photo_url')
     .eq('id', authUser.id)
     .single()
 
-  if (!userData || (userData.role as any)?.name !== 'CEO') {
+  if (!user || (user.role as any)?.name !== 'CEO') {
     redirect('/dashboard')
   }
 
@@ -35,24 +35,24 @@ export default async function ReportsPage() {
   ] = await Promise.all([
     supabase
       .from('users')
-      .select('id, full_name, email, status, role:roles(name)')
+      .select('id, full_name, email, status, profile_photo_url, role:roles(name)')
       .order('full_name'),
     supabase
       .from('tasks')
-      .select('*, assigned_to_user:users!assigned_to(id, full_name), created_by_user:users!created_by(id, full_name)')
+      .select('*, assigned_to_user:users!assigned_to(id, full_name, profile_photo_url), created_by_user:users!created_by(id, full_name, profile_photo_url)')
       .order('created_at', { ascending: false }),
     supabase
       .from('self_tasks')
-      .select('*, user:users(id, full_name)')
+      .select('*, user:users(id, full_name, profile_photo_url)')
       .order('date', { ascending: false }),
     supabase
       .from('leaves')
-      .select('*, user:users(id, full_name)')
+      .select('*, user:users(id, full_name, profile_photo_url)')
       .order('created_at', { ascending: false })
   ])
 
   return (
-    <ProtectedLayout user={userData}>
+    <ProtectedLayout user={user}>
       <ReportsClient
         employees={employees || []}
         tasks={tasks || []}

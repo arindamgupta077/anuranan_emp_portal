@@ -16,7 +16,7 @@ export default async function SelfTasksPage() {
 
   const { data: user } = await supabase
     .from('users')
-    .select('*, role:roles(*)')
+    .select('*, role:roles(*), profile_photo_url')
     .eq('id', authUser.id)
     .single()
 
@@ -27,7 +27,7 @@ export default async function SelfTasksPage() {
   // Build self tasks query
   let selfTasksQuery = supabase
     .from('self_tasks')
-    .select('*, user:users(id, full_name, email)')
+    .select('*, user:users(id, full_name, email, profile_photo_url)')
     .order('task_date', { ascending: false })
 
   if (!isCEO) {
