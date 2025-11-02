@@ -25,7 +25,7 @@ type Task = {
   title: string
   status: string
   priority: string
-  due_date: string
+  due_date: string | null
   completed_at: string | null
   assigned_to: string
   assigned_to_user?: {
@@ -36,7 +36,7 @@ type Task = {
 
 type SelfTask = {
   id: string
-  date: string
+  date: string | null
   details: string
   user_id: string
   user?: {
@@ -47,8 +47,8 @@ type SelfTask = {
 
 type Leave = {
   id: string
-  start_date: string
-  end_date: string
+  start_date: string | null
+  end_date: string | null
   status: string
   user_id: string
   user?: {
@@ -70,23 +70,35 @@ export default function ReportsClient({ employees, tasks, selfTasks, leaves }: P
   const [activeTab, setActiveTab] = useState<'overview' | 'employees' | 'tasks' | 'trends'>('overview')
   const [expandedEmployee, setExpandedEmployee] = useState<string | null>(null)
 
+  // Helper function to ensure no NaN values
+  const safeNumber = (value: number): number => {
+    return isNaN(value) || !isFinite(value) ? 0 : value
+  }
+
   // Helper function to filter by time range
-  const filterByTimeRange = (date: string) => {
-    const itemDate = parseISO(date)
-    const now = new Date()
+  const filterByTimeRange = (date: string | null) => {
+    if (!date) return false // Exclude items with no date
     
-    switch (timeRange) {
-      case 'week':
-        return differenceInDays(now, itemDate) <= 7
-      case 'month':
-        return differenceInDays(now, itemDate) <= 30
-      case 'quarter':
-        return differenceInDays(now, itemDate) <= 90
-      case 'year':
-        return differenceInDays(now, itemDate) <= 365
-      case 'all':
-      default:
-        return true
+    try {
+      const itemDate = parseISO(date)
+      const now = new Date()
+      
+      switch (timeRange) {
+        case 'week':
+          return differenceInDays(now, itemDate) <= 7
+        case 'month':
+          return differenceInDays(now, itemDate) <= 30
+        case 'quarter':
+          return differenceInDays(now, itemDate) <= 90
+        case 'year':
+          return differenceInDays(now, itemDate) <= 365
+        case 'all':
+        default:
+          return true
+      }
+    } catch (error) {
+      console.error('Invalid date format:', date)
+      return false
     }
   }
 
@@ -97,7 +109,7 @@ export default function ReportsClient({ employees, tasks, selfTasks, leaves }: P
       : tasks.filter((t) => t.assigned_to === selectedEmployee)
     
     if (timeRange !== 'all') {
-      filtered = filtered.filter(t => filterByTimeRange(t.due_date))
+      filtered = filtered.filter(t => t.due_date && filterByTimeRange(t.due_date))
     }
     return filtered
   }, [selectedEmployee, tasks, timeRange])
@@ -108,7 +120,7 @@ export default function ReportsClient({ employees, tasks, selfTasks, leaves }: P
       : selfTasks.filter((st) => st.user_id === selectedEmployee)
     
     if (timeRange !== 'all') {
-      filtered = filtered.filter(st => filterByTimeRange(st.date))
+      filtered = filtered.filter(st => st.date && filterByTimeRange(st.date))
     }
     return filtered
   }, [selectedEmployee, selfTasks, timeRange])
@@ -119,7 +131,7 @@ export default function ReportsClient({ employees, tasks, selfTasks, leaves }: P
       : leaves.filter((l) => l.user_id === selectedEmployee)
     
     if (timeRange !== 'all') {
-      filtered = filtered.filter(l => filterByTimeRange(l.start_date))
+      filtered = filtered.filter(l => l.start_date && filterByTimeRange(l.start_date))
     }
     return filtered
   }, [selectedEmployee, leaves, timeRange])
@@ -133,7 +145,7 @@ export default function ReportsClient({ employees, tasks, selfTasks, leaves }: P
     const inProgressTasks = filteredTasks.filter((t) => t.status === 'IN_PROGRESS')
     const openTasks = filteredTasks.filter((t) => t.status === 'OPEN')
     const overdueTasks = filteredTasks.filter(
-      (t) => t.status !== 'COMPLETED' && new Date(t.due_date) < new Date()
+      (t) => t.status !== 'COMPLETED' && t.due_date && new Date(t.due_date) < new Date()
     )
     const completionRate = filteredTasks.length > 0
       ? Math.round((completedTasks.length / filteredTasks.length) * 100)
@@ -145,22 +157,32 @@ export default function ReportsClient({ employees, tasks, selfTasks, leaves }: P
     const lowPriority = filteredTasks.filter(t => t.priority === 'LOW')
 
     // Completion speed (average days to complete)
-    const completedWithDates = completedTasks.filter(t => t.completed_at)
+    const completedWithDates = completedTasks.filter(t => t.completed_at && t.due_date)
     const avgCompletionDays = completedWithDates.length > 0
       ? Math.round(
           completedWithDates.reduce((sum, t) => {
-            const created = parseISO(t.due_date)
-            const completed = parseISO(t.completed_at!)
-            return sum + Math.abs(differenceInDays(completed, created))
+            if (!t.due_date || !t.completed_at) return sum
+            try {
+              const created = parseISO(t.due_date)
+              const completed = parseISO(t.completed_at)
+              return sum + Math.abs(differenceInDays(completed, created))
+            } catch (error) {
+              return sum
+            }
           }, 0) / completedWithDates.length
         )
       : 0
 
     // Self task metrics
     const selfTasksThisMonth = filteredSelfTasks.filter((st) => {
-      const taskDate = parseISO(st.date)
-      const now = new Date()
-      return taskDate.getMonth() === now.getMonth() && taskDate.getFullYear() === now.getFullYear()
+      if (!st.date) return false
+      try {
+        const taskDate = parseISO(st.date)
+        const now = new Date()
+        return taskDate.getMonth() === now.getMonth() && taskDate.getFullYear() === now.getFullYear()
+      } catch (error) {
+        return false
+      }
     })
 
     // Leave metrics
@@ -168,9 +190,14 @@ export default function ReportsClient({ employees, tasks, selfTasks, leaves }: P
     const pendingLeaves = filteredLeaves.filter((l) => l.status === 'PENDING')
     const rejectedLeaves = filteredLeaves.filter((l) => l.status === 'REJECTED')
     const totalLeaveDays = approvedLeaves.reduce((sum, leave) => {
-      const start = parseISO(leave.start_date)
-      const end = parseISO(leave.end_date)
-      return sum + differenceInDays(end, start) + 1
+      if (!leave.start_date || !leave.end_date) return sum
+      try {
+        const start = parseISO(leave.start_date)
+        const end = parseISO(leave.end_date)
+        return sum + differenceInDays(end, start) + 1
+      } catch (error) {
+        return sum
+      }
     }, 0)
     const avgLeaveDaysPerEmployee = activeEmployees.length > 0
       ? Math.round(totalLeaveDays / activeEmployees.length)
@@ -180,7 +207,7 @@ export default function ReportsClient({ employees, tasks, selfTasks, leaves }: P
     const productivityScore = Math.round(
       (completionRate * 0.5) + 
       (Math.max(0, 100 - (overdueTasks.length / Math.max(filteredTasks.length, 1) * 100)) * 0.3) +
-      (Math.min(selfTasksThisMonth.length / activeEmployees.length * 10, 100) * 0.2)
+      (Math.min(selfTasksThisMonth.length / Math.max(activeEmployees.length, 1) * 10, 100) * 0.2)
     )
 
     return {
@@ -190,21 +217,21 @@ export default function ReportsClient({ employees, tasks, selfTasks, leaves }: P
       inProgressTasks: inProgressTasks.length,
       openTasks: openTasks.length,
       overdueTasks: overdueTasks.length,
-      completionRate,
+      completionRate: safeNumber(completionRate),
       highPriority: highPriority.length,
       mediumPriority: mediumPriority.length,
       lowPriority: lowPriority.length,
       highPriorityCompleted: highPriority.filter(t => t.status === 'COMPLETED').length,
-      avgCompletionDays,
+      avgCompletionDays: safeNumber(avgCompletionDays),
       selfTasksCount: filteredSelfTasks.length,
       selfTasksThisMonth: selfTasksThisMonth.length,
       totalLeaves: filteredLeaves.length,
       approvedLeaves: approvedLeaves.length,
       pendingLeaves: pendingLeaves.length,
       rejectedLeaves: rejectedLeaves.length,
-      totalLeaveDays,
-      avgLeaveDaysPerEmployee,
-      productivityScore,
+      totalLeaveDays: safeNumber(totalLeaveDays),
+      avgLeaveDaysPerEmployee: safeNumber(avgLeaveDaysPerEmployee),
+      productivityScore: safeNumber(productivityScore),
     }
   }, [employees, filteredTasks, filteredSelfTasks, filteredLeaves])
 
@@ -220,8 +247,13 @@ export default function ReportsClient({ employees, tasks, selfTasks, leaves }: P
       const monthEnd = endOfMonth(month)
       
       const monthTasks = tasks.filter(t => {
-        const taskDate = parseISO(t.due_date)
-        return isWithinInterval(taskDate, { start: monthStart, end: monthEnd })
+        if (!t.due_date) return false
+        try {
+          const taskDate = parseISO(t.due_date)
+          return isWithinInterval(taskDate, { start: monthStart, end: monthEnd })
+        } catch (error) {
+          return false
+        }
       })
 
       const completed = monthTasks.filter(t => t.status === 'COMPLETED').length
@@ -233,7 +265,7 @@ export default function ReportsClient({ employees, tasks, selfTasks, leaves }: P
         inProgress: monthTasks.filter(t => t.status === 'IN_PROGRESS').length,
         open: monthTasks.filter(t => t.status === 'OPEN').length,
         total,
-        completionRate: total > 0 ? Math.round((completed / total) * 100) : 0
+        completionRate: safeNumber(total > 0 ? Math.round((completed / total) * 100) : 0)
       }
     })
   }, [tasks])
@@ -249,15 +281,20 @@ export default function ReportsClient({ employees, tasks, selfTasks, leaves }: P
         const completed = filteredEmpTasks.filter((t) => t.status === 'COMPLETED').length
         const inProgress = filteredEmpTasks.filter((t) => t.status === 'IN_PROGRESS').length
         const overdue = filteredEmpTasks.filter(
-          (t) => t.status !== 'COMPLETED' && new Date(t.due_date) < new Date()
+          (t) => t.status !== 'COMPLETED' && t.due_date && new Date(t.due_date) < new Date()
         ).length
         const rate = filteredEmpTasks.length > 0 ? Math.round((completed / filteredEmpTasks.length) * 100) : 0
         
         const empLeaves = leaves.filter((l) => l.user_id === emp.id && l.status === 'APPROVED')
         const leaveDays = empLeaves.reduce((sum, leave) => {
-          const start = parseISO(leave.start_date)
-          const end = parseISO(leave.end_date)
-          return sum + differenceInDays(end, start) + 1
+          if (!leave.start_date || !leave.end_date) return sum
+          try {
+            const start = parseISO(leave.start_date)
+            const end = parseISO(leave.end_date)
+            return sum + differenceInDays(end, start) + 1
+          } catch (error) {
+            return sum
+          }
         }, 0)
 
         const empSelfTasks = selfTasks.filter((st) => st.user_id === emp.id)
@@ -283,10 +320,10 @@ export default function ReportsClient({ employees, tasks, selfTasks, leaves }: P
           completed,
           inProgress,
           overdue,
-          completionRate: rate,
+          completionRate: safeNumber(rate),
           selfTasks: empSelfTasks.length,
-          leaveDays,
-          performanceScore,
+          leaveDays: safeNumber(leaveDays),
+          performanceScore: safeNumber(performanceScore),
           highPriority: highPriority.length,
           mediumPriority: mediumPriority.length,
           lowPriority: lowPriority.length,
@@ -531,7 +568,7 @@ export default function ReportsClient({ employees, tasks, selfTasks, leaves }: P
                   <div className="w-full bg-gray-200 rounded-full h-2">
                     <div
                       className="bg-yellow-500 h-2 rounded-full"
-                      style={{ width: `${(metrics.inProgressTasks / Math.max(metrics.totalTasks, 1)) * 100}%` }}
+                      style={{ width: `${safeNumber((metrics.inProgressTasks / Math.max(metrics.totalTasks, 1)) * 100)}%` }}
                     />
                   </div>
                 </div>
@@ -543,7 +580,7 @@ export default function ReportsClient({ employees, tasks, selfTasks, leaves }: P
                   <div className="w-full bg-gray-200 rounded-full h-2">
                     <div
                       className="bg-blue-500 h-2 rounded-full"
-                      style={{ width: `${(metrics.openTasks / Math.max(metrics.totalTasks, 1)) * 100}%` }}
+                      style={{ width: `${safeNumber((metrics.openTasks / Math.max(metrics.totalTasks, 1)) * 100)}%` }}
                     />
                   </div>
                 </div>
@@ -564,7 +601,7 @@ export default function ReportsClient({ employees, tasks, selfTasks, leaves }: P
                   <div className="w-full bg-gray-200 rounded-full h-2">
                     <div
                       className="bg-red-500 h-2 rounded-full"
-                      style={{ width: `${(metrics.highPriority / Math.max(metrics.totalTasks, 1)) * 100}%` }}
+                      style={{ width: `${safeNumber((metrics.highPriority / Math.max(metrics.totalTasks, 1)) * 100)}%` }}
                     />
                   </div>
                 </div>
@@ -576,7 +613,7 @@ export default function ReportsClient({ employees, tasks, selfTasks, leaves }: P
                   <div className="w-full bg-gray-200 rounded-full h-2">
                     <div
                       className="bg-yellow-500 h-2 rounded-full"
-                      style={{ width: `${(metrics.mediumPriority / Math.max(metrics.totalTasks, 1)) * 100}%` }}
+                      style={{ width: `${safeNumber((metrics.mediumPriority / Math.max(metrics.totalTasks, 1)) * 100)}%` }}
                     />
                   </div>
                 </div>
@@ -588,7 +625,7 @@ export default function ReportsClient({ employees, tasks, selfTasks, leaves }: P
                   <div className="w-full bg-gray-200 rounded-full h-2">
                     <div
                       className="bg-green-500 h-2 rounded-full"
-                      style={{ width: `${(metrics.lowPriority / Math.max(metrics.totalTasks, 1)) * 100}%` }}
+                      style={{ width: `${safeNumber((metrics.lowPriority / Math.max(metrics.totalTasks, 1)) * 100)}%` }}
                     />
                   </div>
                 </div>
@@ -645,7 +682,7 @@ export default function ReportsClient({ employees, tasks, selfTasks, leaves }: P
                 <p className="text-3xl font-bold text-yellow-900">{metrics.inProgressTasks}</p>
                 <p className="text-sm text-yellow-700 font-medium mt-1">In Progress</p>
                 <p className="text-xs text-gray-600 mt-2">
-                  {Math.round((metrics.inProgressTasks / Math.max(metrics.totalTasks, 1)) * 100)}% of total
+                  {safeNumber(Math.round((metrics.inProgressTasks / Math.max(metrics.totalTasks, 1)) * 100))}% of total
                 </p>
               </div>
               <div className="text-center p-6 bg-red-50 rounded-lg border-2 border-red-200">
@@ -761,12 +798,12 @@ export default function ReportsClient({ employees, tasks, selfTasks, leaves }: P
                         <td className="px-4 py-4 whitespace-nowrap">
                           <div className="w-full">
                             <div className="flex items-center justify-between mb-1">
-                              <span className="text-sm font-medium text-gray-900">{emp.completionRate}%</span>
+                              <span className="text-sm font-medium text-gray-900">{safeNumber(emp.completionRate)}%</span>
                             </div>
                             <div className="w-24 bg-gray-200 rounded-full h-2">
                               <div
                                 className={`h-2 rounded-full ${emp.completionRate >= 80 ? 'bg-green-500' : emp.completionRate >= 50 ? 'bg-yellow-500' : 'bg-red-500'}`}
-                                style={{ width: `${emp.completionRate}%` }}
+                                style={{ width: `${safeNumber(emp.completionRate)}%` }}
                               />
                             </div>
                           </div>
@@ -913,7 +950,7 @@ export default function ReportsClient({ employees, tasks, selfTasks, leaves }: P
                       style={{ width: `${(metrics.completedTasks / Math.max(metrics.totalTasks, 1)) * 100}%` }}
                     >
                       <span className="text-xs text-white font-medium">
-                        {Math.round((metrics.completedTasks / Math.max(metrics.totalTasks, 1)) * 100)}%
+                        {safeNumber(Math.round((metrics.completedTasks / Math.max(metrics.totalTasks, 1)) * 100))}%
                       </span>
                     </div>
                   </div>
@@ -929,7 +966,7 @@ export default function ReportsClient({ employees, tasks, selfTasks, leaves }: P
                       style={{ width: `${(metrics.inProgressTasks / Math.max(metrics.totalTasks, 1)) * 100}%` }}
                     >
                       <span className="text-xs text-white font-medium">
-                        {Math.round((metrics.inProgressTasks / Math.max(metrics.totalTasks, 1)) * 100)}%
+                        {safeNumber(Math.round((metrics.inProgressTasks / Math.max(metrics.totalTasks, 1)) * 100))}%
                       </span>
                     </div>
                   </div>
@@ -945,7 +982,7 @@ export default function ReportsClient({ employees, tasks, selfTasks, leaves }: P
                       style={{ width: `${(metrics.openTasks / Math.max(metrics.totalTasks, 1)) * 100}%` }}
                     >
                       <span className="text-xs text-white font-medium">
-                        {Math.round((metrics.openTasks / Math.max(metrics.totalTasks, 1)) * 100)}%
+                        {safeNumber(Math.round((metrics.openTasks / Math.max(metrics.totalTasks, 1)) * 100))}%
                       </span>
                     </div>
                   </div>
@@ -961,7 +998,7 @@ export default function ReportsClient({ employees, tasks, selfTasks, leaves }: P
                       style={{ width: `${(metrics.overdueTasks / Math.max(metrics.totalTasks, 1)) * 100}%` }}
                     >
                       <span className="text-xs text-white font-medium">
-                        {Math.round((metrics.overdueTasks / Math.max(metrics.totalTasks, 1)) * 100)}%
+                        {safeNumber(Math.round((metrics.overdueTasks / Math.max(metrics.totalTasks, 1)) * 100))}%
                       </span>
                     </div>
                   </div>
@@ -986,12 +1023,12 @@ export default function ReportsClient({ employees, tasks, selfTasks, leaves }: P
                       style={{ width: `${(metrics.highPriority / Math.max(metrics.totalTasks, 1)) * 100}%` }}
                     >
                       <span className="text-xs text-white font-medium">
-                        {Math.round((metrics.highPriority / Math.max(metrics.totalTasks, 1)) * 100)}%
+                        {safeNumber(Math.round((metrics.highPriority / Math.max(metrics.totalTasks, 1)) * 100))}%
                       </span>
                     </div>
                   </div>
                   <div className="text-xs text-gray-600 mt-1">
-                    {metrics.highPriorityCompleted} completed ({metrics.highPriority > 0 ? Math.round((metrics.highPriorityCompleted / metrics.highPriority) * 100) : 0}%)
+                    {metrics.highPriorityCompleted} completed ({safeNumber(metrics.highPriority > 0 ? Math.round((metrics.highPriorityCompleted / metrics.highPriority) * 100) : 0)}%)
                   </div>
                 </div>
                 <div>
@@ -1008,7 +1045,7 @@ export default function ReportsClient({ employees, tasks, selfTasks, leaves }: P
                       style={{ width: `${(metrics.mediumPriority / Math.max(metrics.totalTasks, 1)) * 100}%` }}
                     >
                       <span className="text-xs text-white font-medium">
-                        {Math.round((metrics.mediumPriority / Math.max(metrics.totalTasks, 1)) * 100)}%
+                        {safeNumber(Math.round((metrics.mediumPriority / Math.max(metrics.totalTasks, 1)) * 100))}%
                       </span>
                     </div>
                   </div>
@@ -1027,7 +1064,7 @@ export default function ReportsClient({ employees, tasks, selfTasks, leaves }: P
                       style={{ width: `${(metrics.lowPriority / Math.max(metrics.totalTasks, 1)) * 100}%` }}
                     >
                       <span className="text-xs text-white font-medium">
-                        {Math.round((metrics.lowPriority / Math.max(metrics.totalTasks, 1)) * 100)}%
+                        {safeNumber(Math.round((metrics.lowPriority / Math.max(metrics.totalTasks, 1)) * 100))}%
                       </span>
                     </div>
                   </div>

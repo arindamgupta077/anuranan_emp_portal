@@ -85,7 +85,7 @@ export default function LoginPage() {
             </div>
             <h1 className="text-5xl font-bold text-gray-900 leading-tight">
               Welcome to<br />
-              <span className="premium-brand" style={{ fontSize: '3rem', display: 'inline-block' }}>ANURANAN</span>
+              <span className="premium-brand" style={{ fontSize: '3rem', display: 'inline-block' }}>ANURANAN EMPLOYEE PORTAL</span>
             </h1>
             <p className="text-xl text-gray-700 leading-relaxed">
               Bengali Recitation Training Institute
@@ -173,7 +173,7 @@ export default function LoginPage() {
                 required
                 autoComplete="email"
                 disabled={isLoading}
-                placeholder="your.email@anuranan.org"
+                placeholder="name.surname@anuranan.in"
               />
 
               <Input

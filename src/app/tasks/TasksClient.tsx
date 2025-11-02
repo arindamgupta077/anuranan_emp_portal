@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Plus, Filter, AlertCircle, Clock, Eye, CheckCircle, Circle, Loader, Edit, Trash2, X, Save } from 'lucide-react'
+import { Plus, Filter, AlertCircle, Clock, Eye, CheckCircle, Circle, Loader, Edit, Trash2, X, Save, Users, BarChart3, Clipboard } from 'lucide-react'
 import { Task, TaskStatus, TASK_STATUSES } from '@/lib/types'
 import { formatDate, isOverdue } from '@/lib/utils/date'
 import { useToast } from '@/components/ui/Toast'
@@ -30,6 +30,7 @@ export default function TasksClient({ user, tasks, employees }: TasksClientProps
   const [isUpdating, setIsUpdating] = useState(false)
   const [updatingTaskId, setUpdatingTaskId] = useState<string | null>(null)
   const [statusFilters, setStatusFilters] = useState<TaskStatus[]>(['OPEN', 'IN_PROGRESS'])
+  const [selectedEmployee, setSelectedEmployee] = useState<string>('all')
   const [currentPage, setCurrentPage] = useState(1)
   const [isEditMode, setIsEditMode] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
@@ -39,7 +40,7 @@ export default function TasksClient({ user, tasks, employees }: TasksClientProps
   const { showToast } = useToast()
 
   const isCEO = user.role.name === 'CEO'
-  const ITEMS_PER_PAGE = 50
+  const ITEMS_PER_PAGE = 10
 
   // Initialize comment when task is selected
   useEffect(() => {
@@ -233,7 +234,16 @@ export default function TasksClient({ user, tasks, employees }: TasksClientProps
     router.push(`/tasks?status=${newFilters.join(',')}`)
   }
 
-  const filteredTasks = tasks.filter(task => statusFilters.includes(task.status as TaskStatus))
+  const handleEmployeeFilter = (employeeId: string) => {
+    setSelectedEmployee(employeeId)
+    setCurrentPage(1) // Reset to first page when filter changes
+  }
+
+  const filteredTasks = tasks.filter(task => {
+    const statusMatch = statusFilters.includes(task.status as TaskStatus)
+    const employeeMatch = selectedEmployee === 'all' || task.assigned_to === selectedEmployee
+    return statusMatch && employeeMatch
+  })
 
   // Pagination calculations
   const totalFilteredTasks = filteredTasks.length
@@ -423,42 +433,147 @@ export default function TasksClient({ user, tasks, employees }: TasksClientProps
         </Card>
       </div>
 
-      {/* Filters - Mobile: Single Line, Desktop: Wrapped */}
+      {/* Filters - Mobile: Side by Side Dropdowns, Desktop: Status Buttons + Employee Dropdown */}
       <div className="px-4 md:px-0">
-        <Card className="bg-white border border-gray-200 shadow-sm p-2">
-        <div className="flex flex-col gap-1.5">
-          {/* Filter Label */}
-          <div className="flex items-center gap-1.5">
-            <Filter className="w-3.5 h-3.5 text-indigo-600" />
-            <span className="text-xs font-semibold text-gray-700 uppercase tracking-wide">Filter by status:</span>
-          </div>
-          
-          {/* Filter Buttons - Single scrollable line on mobile, wrapped on desktop */}
-          <div className="flex md:flex-wrap gap-2 overflow-x-auto hide-scrollbar-mobile pb-0.5">
-            {TASK_STATUSES.map(status => {
-              const isActive = statusFilters.includes(status)
-              return (
-                <button
-                  key={status}
-                  onClick={() => toggleStatusFilter(status)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 flex items-center gap-1.5 whitespace-nowrap flex-shrink-0 ${
-                    isActive
-                      ? status === 'COMPLETED'
-                        ? 'bg-gradient-to-r from-emerald-500 to-green-600 text-white shadow-sm'
-                        : status === 'IN_PROGRESS'
-                        ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-sm'
-                        : 'bg-gradient-to-r from-indigo-500 to-indigo-600 text-white shadow-sm'
-                      : 'bg-gray-50 text-gray-700 hover:bg-gray-100 border border-gray-200'
-                  }`}
+        <Card className="bg-white border border-gray-200 shadow-sm p-3">
+          {/* Mobile View - Side by Side Dropdowns */}
+          <div className="lg:hidden">
+            <div className={`grid gap-3 ${isCEO && employees.length > 0 ? 'grid-cols-[1.5fr,1fr]' : 'grid-cols-1'}`}>
+              {/* Status Filter Dropdown - Mobile */}
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center gap-1.5">
+                  <div className="p-1 bg-indigo-100 rounded">
+                    <Filter className="w-3 h-3 text-indigo-600" />
+                  </div>
+                  <span className="text-xs font-bold text-gray-800 uppercase tracking-wide">STATUS</span>
+                </div>
+                <select
+                  value={
+                    statusFilters.length === 3 ? 'all' :
+                    statusFilters.length === 2 && statusFilters.includes('OPEN') && statusFilters.includes('IN_PROGRESS') ? 'active' :
+                    statusFilters.length === 1 ? statusFilters[0] : 'active'
+                  }
+                  onChange={(e) => {
+                    const value = e.target.value
+                    if (value === 'all') {
+                      setStatusFilters(['OPEN', 'IN_PROGRESS', 'COMPLETED'])
+                    } else if (value === 'active') {
+                      setStatusFilters(['OPEN', 'IN_PROGRESS'])
+                    } else {
+                      setStatusFilters([value as TaskStatus])
+                    }
+                    setCurrentPage(1)
+                    router.push(`/tasks?status=${value === 'all' ? 'OPEN,IN_PROGRESS,COMPLETED' : value === 'active' ? 'OPEN,IN_PROGRESS' : value}`)
+                  }}
+                  className="w-full text-sm font-semibold px-3 py-2.5 border-2 border-indigo-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-600 bg-gradient-to-br from-indigo-50 to-white text-gray-800 cursor-pointer transition-all duration-200 shadow-sm hover:shadow-md"
+                  style={{
+                    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%234F46E5' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M6 8l4 4 4-4'/%3E%3C/svg%3E")`,
+                    backgroundPosition: 'right 0.5rem center',
+                    backgroundRepeat: 'no-repeat',
+                    backgroundSize: '1.5em 1.5em',
+                    paddingRight: '2.5rem'
+                  }}
                 >
-                  {isActive && getStatusIcon(status)}
-                  {status.replace('_', ' ')}
-                </button>
-              )
-            })}
+                  <option value="active">Active (Open + Progress)</option>
+                  <option value="all">All Status</option>
+                  <option value="OPEN">Open</option>
+                  <option value="IN_PROGRESS">In Progress</option>
+                  <option value="COMPLETED">Completed</option>
+                </select>
+              </div>
+
+              {/* Employee Filter Dropdown - Mobile (CEO Only) */}
+              {isCEO && employees.length > 0 && (
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center gap-1.5">
+                    <div className="p-1 bg-purple-100 rounded">
+                      <Users className="w-3 h-3 text-purple-600" />
+                    </div>
+                    <span className="text-xs font-bold text-gray-800 uppercase tracking-wide">EMPLOYEE</span>
+                  </div>
+                  <select
+                    value={selectedEmployee}
+                    onChange={(e) => handleEmployeeFilter(e.target.value)}
+                    className="w-full text-sm font-semibold px-3 py-2.5 border-2 border-purple-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-600 bg-gradient-to-br from-purple-50 to-white text-gray-800 cursor-pointer transition-all duration-200 shadow-sm hover:shadow-md"
+                    style={{
+                      backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%239333EA' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M6 8l4 4 4-4'/%3E%3C/svg%3E")`,
+                      backgroundPosition: 'right 0.5rem center',
+                      backgroundRepeat: 'no-repeat',
+                      backgroundSize: '1.5em 1.5em',
+                      paddingRight: '2.5rem'
+                    }}
+                  >
+                    <option value="all">All Employees</option>
+                    {employees.map(employee => (
+                      <option key={employee.id} value={employee.id}>
+                        {employee.full_name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-      </Card>
+
+          {/* Desktop View - Status Buttons + Employee Dropdown */}
+          <div className="hidden lg:flex flex-row gap-6">
+            {/* Status Filter Section */}
+            <div className="flex-1 flex flex-col gap-2">
+              <div className="flex items-center gap-1.5">
+                <Filter className="w-3.5 h-3.5 text-indigo-600" />
+                <span className="text-xs font-semibold text-gray-700 uppercase tracking-wide">Filter by status:</span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {TASK_STATUSES.map(status => {
+                  const isActive = statusFilters.includes(status)
+                  return (
+                    <button
+                      key={status}
+                      onClick={() => toggleStatusFilter(status)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 flex items-center gap-1.5 whitespace-nowrap ${
+                        isActive
+                          ? status === 'COMPLETED'
+                            ? 'bg-gradient-to-r from-emerald-500 to-green-600 text-white shadow-sm'
+                            : status === 'IN_PROGRESS'
+                            ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-sm'
+                            : 'bg-gradient-to-r from-indigo-500 to-indigo-600 text-white shadow-sm'
+                          : 'bg-gray-50 text-gray-700 hover:bg-gray-100 border border-gray-200'
+                      }`}
+                    >
+                      {isActive && getStatusIcon(status)}
+                      {status.replace('_', ' ')}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* Employee Filter - Only for CEO */}
+            {isCEO && employees.length > 0 && (
+              <>
+                <div className="w-px bg-gray-200"></div>
+                <div className="flex flex-col gap-2 w-80">
+                  <div className="flex items-center gap-1.5">
+                    <Users className="w-3.5 h-3.5 text-purple-600" />
+                    <span className="text-xs font-semibold text-gray-700 uppercase tracking-wide">Filter by employee:</span>
+                  </div>
+                  <select
+                    value={selectedEmployee}
+                    onChange={(e) => handleEmployeeFilter(e.target.value)}
+                    className="w-full text-xs font-medium px-3 py-2 border-2 border-purple-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white text-gray-700 cursor-pointer transition-all duration-200 hover:border-purple-400"
+                  >
+                    <option value="all">All Employees</option>
+                    {employees.map(employee => (
+                      <option key={employee.id} value={employee.id}>
+                        {employee.full_name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </>
+            )}
+          </div>
+        </Card>
       </div>
 
       {/* Tasks Table/Cards - Mobile Responsive */}
@@ -840,6 +955,120 @@ export default function TasksClient({ user, tasks, employees }: TasksClientProps
           </div>
         )}
       </div>
+
+      {/* Filter-Based Statistics Section */}
+      {filteredTasks.length > 0 && (
+        <div className="mb-6">
+          <div className="bg-white rounded-lg md:rounded-xl shadow-md md:shadow-lg border border-gray-200 overflow-hidden">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-indigo-600 to-purple-600 px-3 py-2 md:px-6 md:py-3">
+              <h3 className="text-sm md:text-lg font-bold text-white flex items-center gap-1.5 md:gap-2">
+                <BarChart3 className="w-4 h-4 md:w-5 md:h-5" />
+                Filtered Statistics
+              </h3>
+              <p className="text-[10px] md:text-sm text-indigo-100 mt-0.5 md:mt-1">
+                Based on current filter selection
+              </p>
+            </div>
+
+            {/* Statistics Cards */}
+            <div className="p-2 md:p-6">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2 md:gap-4">
+                {/* Total Filtered Tasks */}
+                <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg md:rounded-xl p-2 md:p-4 border border-gray-300 md:border-2 shadow-sm hover:shadow-md transition-all">
+                  <div className="flex items-center justify-between mb-1 md:mb-2">
+                    <div className="p-1 md:p-2 bg-gray-600 rounded-md md:rounded-lg">
+                      <Clipboard className="w-3 h-3 md:w-5 md:h-5 text-white" />
+                    </div>
+                  </div>
+                  <p className="text-[9px] md:text-sm font-medium text-gray-600 mb-0.5 md:mb-1">Filtered Total</p>
+                  <p className="text-lg md:text-3xl font-bold text-gray-800">{filteredTasks.length}</p>
+                </div>
+
+                {/* Filtered Open Tasks */}
+                <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-lg md:rounded-xl p-2 md:p-4 border border-indigo-300 md:border-2 shadow-sm hover:shadow-md transition-all">
+                  <div className="flex items-center justify-between mb-1 md:mb-2">
+                    <div className="p-1 md:p-2 bg-indigo-600 rounded-md md:rounded-lg">
+                      <Circle className="w-3 h-3 md:w-5 md:h-5 text-white" />
+                    </div>
+                  </div>
+                  <p className="text-[9px] md:text-sm font-medium text-indigo-600 mb-0.5 md:mb-1">Open</p>
+                  <p className="text-lg md:text-3xl font-bold text-indigo-700">
+                    {filteredTasks.filter(t => t.status === 'OPEN').length}
+                  </p>
+                </div>
+
+                {/* Filtered In Progress Tasks */}
+                <div className="bg-gradient-to-br from-amber-50 to-amber-100 rounded-lg md:rounded-xl p-2 md:p-4 border border-amber-300 md:border-2 shadow-sm hover:shadow-md transition-all">
+                  <div className="flex items-center justify-between mb-1 md:mb-2">
+                    <div className="p-1 md:p-2 bg-amber-600 rounded-md md:rounded-lg">
+                      <Clock className="w-3 h-3 md:w-5 md:h-5 text-white" />
+                    </div>
+                  </div>
+                  <p className="text-[9px] md:text-sm font-medium text-amber-600 mb-0.5 md:mb-1">In Progress</p>
+                  <p className="text-lg md:text-3xl font-bold text-amber-700">
+                    {filteredTasks.filter(t => t.status === 'IN_PROGRESS').length}
+                  </p>
+                </div>
+
+                {/* Filtered Completed Tasks */}
+                <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-lg md:rounded-xl p-2 md:p-4 border border-emerald-300 md:border-2 shadow-sm hover:shadow-md transition-all">
+                  <div className="flex items-center justify-between mb-1 md:mb-2">
+                    <div className="p-1 md:p-2 bg-emerald-600 rounded-md md:rounded-lg">
+                      <CheckCircle className="w-3 h-3 md:w-5 md:h-5 text-white" />
+                    </div>
+                  </div>
+                  <p className="text-[9px] md:text-sm font-medium text-emerald-600 mb-0.5 md:mb-1">Completed</p>
+                  <p className="text-lg md:text-3xl font-bold text-emerald-700">
+                    {filteredTasks.filter(t => t.status === 'COMPLETED').length}
+                  </p>
+                </div>
+
+                {/* Filtered Overdue Tasks */}
+                <div className="bg-gradient-to-br from-rose-50 to-rose-100 rounded-lg md:rounded-xl p-2 md:p-4 border border-rose-300 md:border-2 shadow-sm hover:shadow-md transition-all">
+                  <div className="flex items-center justify-between mb-1 md:mb-2">
+                    <div className="p-1 md:p-2 bg-rose-600 rounded-md md:rounded-lg">
+                      <AlertCircle className="w-3 h-3 md:w-5 md:h-5 text-white" />
+                    </div>
+                  </div>
+                  <p className="text-[9px] md:text-sm font-medium text-rose-600 mb-0.5 md:mb-1">Overdue</p>
+                  <p className="text-lg md:text-3xl font-bold text-rose-700">
+                    {filteredTasks.filter(t => t.due_date && isOverdue(t.due_date) && t.status !== 'COMPLETED').length}
+                  </p>
+                </div>
+              </div>
+
+              {/* Active Filters Display */}
+              <div className="mt-2 pt-2 md:mt-4 md:pt-4 border-t border-gray-200">
+                <div className="flex flex-wrap items-center gap-1.5 md:gap-2">
+                  <span className="text-[10px] md:text-sm font-semibold text-gray-600">Active Filters:</span>
+                  
+                  {/* Status Filter Badge */}
+                  {statusFilters.length > 0 && statusFilters.length < TASK_STATUSES.length && (
+                    <div className="inline-flex items-center gap-1 md:gap-1.5 px-2 py-1 md:px-3 md:py-1.5 bg-indigo-100 text-indigo-700 rounded-md md:rounded-lg text-[9px] md:text-xs font-semibold border border-indigo-200">
+                      <Filter className="w-2.5 h-2.5 md:w-3 md:h-3" />
+                      Status: {statusFilters.map(s => s.replace('_', ' ')).join(', ')}
+                    </div>
+                  )}
+                  
+                  {/* Employee Filter Badge */}
+                  {selectedEmployee !== 'all' && isCEO && (
+                    <div className="inline-flex items-center gap-1 md:gap-1.5 px-2 py-1 md:px-3 md:py-1.5 bg-purple-100 text-purple-700 rounded-md md:rounded-lg text-[9px] md:text-xs font-semibold border border-purple-200">
+                      <Users className="w-2.5 h-2.5 md:w-3 md:h-3" />
+                      Employee: {employees.find(e => e.id === selectedEmployee)?.full_name || 'Unknown'}
+                    </div>
+                  )}
+                  
+                  {/* No Filters Applied */}
+                  {statusFilters.length === TASK_STATUSES.length && selectedEmployee === 'all' && (
+                    <span className="text-[9px] md:text-sm text-gray-500 italic">No filters applied (showing all tasks)</span>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Task Details Modal */}
       {selectedTask && (

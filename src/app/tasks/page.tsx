@@ -24,10 +24,7 @@ export default async function TasksPage({ searchParams }: { searchParams: { stat
 
   const isCEO = user.role.name === 'CEO'
 
-  // Get filter status
-  const statusFilter = searchParams.status?.split(',') || ['OPEN', 'IN_PROGRESS']
-
-  // Build tasks query
+  // Build tasks query - fetch ALL tasks (no status filter on server)
   let tasksQuery = supabase
     .from('tasks')
     .select(`
@@ -35,7 +32,6 @@ export default async function TasksPage({ searchParams }: { searchParams: { stat
       assigned_user:users!assigned_to(id, full_name, email),
       created_user:users!created_by(id, full_name)
     `)
-    .in('status', statusFilter)
     .order('due_date', { ascending: true, nullsFirst: true })
 
   if (!isCEO) {
