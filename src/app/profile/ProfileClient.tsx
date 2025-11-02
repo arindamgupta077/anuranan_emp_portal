@@ -321,24 +321,6 @@ export default function ProfileClient({ user, stats }: Props) {
         </div>
       </Card>
 
-      {/* Quick Actions */}
-      <Card title="Quick Actions">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Button onClick={() => router.push('/dashboard')} variant="ghost">
-            Dashboard
-          </Button>
-          <Button onClick={() => router.push('/tasks')} variant="ghost">
-            My Tasks
-          </Button>
-          <Button onClick={() => router.push('/self-tasks')} variant="ghost">
-            Self Tasks
-          </Button>
-          <Button onClick={() => router.push('/leaves')} variant="ghost">
-            Leaves
-          </Button>
-        </div>
-      </Card>
-
       {/* Account Info */}
       <Card title="Account Information">
         <dl className="grid grid-cols-1 md:grid-cols-2 gap-6">

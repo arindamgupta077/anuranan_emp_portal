@@ -45,21 +45,6 @@ export default function DashboardLoading() {
             ))}
           </div>
 
-          {/* Quick Actions Skeleton */}
-          <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100 animate-pulse">
-            <div className="space-y-6">
-              <div>
-                <div className="h-8 bg-gray-200 rounded w-48 mb-2"></div>
-                <div className="h-4 bg-gray-200 rounded w-64"></div>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className="h-32 bg-gradient-to-br from-gray-200 to-gray-300 rounded-xl"></div>
-                ))}
-              </div>
-            </div>
-          </div>
-
           {/* Performance Overview Skeleton */}
           <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl shadow-xl p-8 border border-gray-200 animate-pulse">
             <div className="space-y-6">

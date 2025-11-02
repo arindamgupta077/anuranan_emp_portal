@@ -14,6 +14,31 @@ const supabaseAdmin = createClient(
   }
 )
 
+export async function GET(request: Request) {
+  try {
+    const supabase = await createServerClient()
+    const { data: { session } } = await supabase.auth.getSession()
+
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    // Fetch all active employees
+    const { data: employees, error } = await supabase
+      .from('users')
+      .select('id, full_name, email, role:roles(name)')
+      .eq('is_active', true)
+      .order('full_name')
+
+    if (error) throw error
+
+    return NextResponse.json(employees || [])
+  } catch (error: any) {
+    console.error('Error fetching employees:', error)
+    return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 })
+  }
+}
+
 export async function POST(request: Request) {
   try {
     const supabase = await createServerClient()
