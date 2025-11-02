@@ -882,13 +882,13 @@ export default function AdminClient({ employees, roles, recurringTasks }: Props)
               <p className="text-white/90 text-sm sm:text-base md:text-lg mb-6 sm:mb-8 max-w-2xl mx-auto px-4">
                 View comprehensive reports, analyze team performance, and export detailed analytics
               </p>
-              <Button 
+              <button
                 onClick={() => router.push('/reports')}
-                className="bg-white text-indigo-600 hover:bg-gray-100 font-semibold px-6 sm:px-8 py-2.5 sm:py-3 text-base sm:text-lg flex items-center justify-center gap-2 sm:gap-3 mx-auto shadow-lg w-full sm:w-auto max-w-sm"
+                className="bg-white text-indigo-600 hover:bg-gray-100 font-semibold px-6 sm:px-8 py-2.5 sm:py-3 text-base sm:text-lg rounded-lg flex items-center justify-center gap-2 sm:gap-3 mx-auto shadow-lg w-full sm:w-auto max-w-sm transition-colors"
               >
                 <TrendingUp className="h-5 w-5 sm:h-6 sm:w-6" />
                 Open Reports Dashboard
-              </Button>
+              </button>
             </div>
           </div>
 

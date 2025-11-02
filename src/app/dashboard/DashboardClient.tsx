@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { 
   CheckSquare, 
@@ -19,14 +20,22 @@ import {
   Clock,
   Zap,
   BarChart3,
-  FileText
+  FileText,
+  Sparkles,
+  Edit2
 } from 'lucide-react'
 import Card from '@/components/ui/Card'
 import Button from '@/components/ui/Button'
+import Input from '@/components/ui/Input'
+import Textarea from '@/components/ui/Textarea'
+import Modal from '@/components/ui/Modal'
 import AssignTaskModal from '@/components/modals/AssignTaskModal'
+import { useToast } from '@/components/ui/Toast'
+import { getToday } from '@/lib/utils/date'
 
 interface DashboardClientProps {
   user: {
+    id: string
     full_name: string
     role: {
       name: string
@@ -44,7 +53,15 @@ interface DashboardClientProps {
 
 export default function DashboardClient({ user, stats }: DashboardClientProps) {
   const isCEO = user.role.name === 'CEO'
+  const router = useRouter()
+  const { showToast } = useToast()
   const [showAssignModal, setShowAssignModal] = useState(false)
+  const [showSelfTaskModal, setShowSelfTaskModal] = useState(false)
+  const [isSubmittingSelfTask, setIsSubmittingSelfTask] = useState(false)
+  const [selfTaskForm, setSelfTaskForm] = useState({
+    task_date: getToday(),
+    details: '',
+  })
 
   // Get current time for greeting
   const getGreeting = () => {
@@ -52,6 +69,35 @@ export default function DashboardClient({ user, stats }: DashboardClientProps) {
     if (hour < 12) return 'Good Morning'
     if (hour < 18) return 'Good Afternoon'
     return 'Good Evening'
+  }
+
+  // Handle self task submission
+  const handleSelfTaskSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsSubmittingSelfTask(true)
+
+    try {
+      const response = await fetch('/api/self-tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...selfTaskForm,
+          visibility: 'PUBLIC',
+          user_id: user.id,
+        }),
+      })
+
+      if (!response.ok) throw new Error('Failed to log self task')
+
+      showToast('success', 'Self task logged successfully')
+      setSelfTaskForm({ task_date: getToday(), details: '' })
+      setShowSelfTaskModal(false)
+      router.refresh()
+    } catch (error) {
+      showToast('error', 'Failed to log self task')
+    } finally {
+      setIsSubmittingSelfTask(false)
+    }
   }
 
   return (
@@ -79,6 +125,14 @@ export default function DashboardClient({ user, stats }: DashboardClientProps) {
               </p>
             </div>
             <div className="flex items-center gap-2 md:gap-3 w-full md:w-auto">
+              <Button
+                onClick={() => setShowSelfTaskModal(true)}
+                className="bg-white/20 hover:bg-white/30 text-white backdrop-blur-sm border border-white/30 hover:border-white/40 transition-all duration-300 shadow-lg hover:shadow-xl px-3 md:px-4 py-2 text-xs md:text-sm font-medium flex-1 md:flex-none touch-target"
+              >
+                <Sparkles className="w-4 h-4 md:mr-2" />
+                <span className="hidden md:inline">Log Self Task</span>
+                <span className="md:hidden ml-2">Log Task</span>
+              </Button>
               {isCEO && (
                 <Button
                   onClick={() => setShowAssignModal(true)}
@@ -429,6 +483,85 @@ export default function DashboardClient({ user, stats }: DashboardClientProps) {
           onClose={() => setShowAssignModal(false)}
         />
       )}
+
+      {/* Log Self Task Modal */}
+      <Modal
+        isOpen={showSelfTaskModal}
+        onClose={() => {
+          setShowSelfTaskModal(false)
+          setSelfTaskForm({ task_date: getToday(), details: '' })
+        }}
+        title="✨ Log Self Task"
+        size="lg"
+      >
+        <form onSubmit={handleSelfTaskSubmit} className="space-y-6">
+          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-4 border border-blue-100">
+            <div className="flex items-start gap-3">
+              <div className="bg-blue-600 p-2 rounded-lg">
+                <Calendar className="w-4 h-4 text-white" />
+              </div>
+              <div className="flex-1">
+                <label className="block text-sm font-semibold text-gray-900 mb-2">
+                  Task Date
+                </label>
+                <Input
+                  type="date"
+                  value={selfTaskForm.task_date}
+                  onChange={(e) => setSelfTaskForm({ ...selfTaskForm, task_date: e.target.value })}
+                  required
+                  className="bg-white"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-4 border border-purple-100">
+            <div className="flex items-start gap-3 mb-3">
+              <div className="bg-purple-600 p-2 rounded-lg">
+                <Edit2 className="w-4 h-4 text-white" />
+              </div>
+              <div className="flex-1">
+                <label className="block text-sm font-semibold text-gray-900 mb-2">
+                  Task Details
+                </label>
+                <p className="text-xs text-gray-600 mb-3">
+                  Share what you accomplished, challenges faced, or tasks completed
+                </p>
+              </div>
+            </div>
+            <Textarea
+              value={selfTaskForm.details}
+              onChange={(e) => setSelfTaskForm({ ...selfTaskForm, details: e.target.value })}
+              required
+              placeholder="✍️ Describe what you worked on today..."
+              rows={8}
+              className="bg-white border-purple-200 focus:ring-purple-500"
+            />
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4 border-t-2 border-gray-200">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => {
+                setShowSelfTaskModal(false)
+                setSelfTaskForm({ task_date: getToday(), details: '' })
+              }}
+              className="hover:scale-105 transition-transform duration-200"
+            >
+              Cancel
+            </Button>
+            <Button 
+              type="submit" 
+              isLoading={isSubmittingSelfTask}
+              className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 hover:scale-105 transition-all duration-200"
+            >
+              <Sparkles className="w-4 h-4 mr-2" />
+              Log Task
+            </Button>
+          </div>
+        </form>
+      </Modal>
     </div>
   )
 }
