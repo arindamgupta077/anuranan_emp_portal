@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
-import { Menu, X, LayoutDashboard, CheckSquare, ClipboardList, Calendar, Settings, User, LogOut } from 'lucide-react'
+import { Menu, X, LayoutDashboard, CheckSquare, ClipboardList, Calendar, Settings, User, LogOut, ExternalLink, Globe } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import Button from '../ui/Button'
 
@@ -111,16 +111,16 @@ export default function Navbar({ user }: NavbarProps) {
 
   return (
     <nav className="bg-white shadow-md sticky top-0 z-40">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-16">
-          <div className="flex items-center">
+      <div className="w-full px-3 sm:px-4 lg:px-6">
+        <div className="flex justify-between items-center h-16 gap-2">
+          <div className="flex items-center min-w-0">
             {/* Logo */}
             <Link href="/dashboard" className="flex-shrink-0 flex items-center premium-brand-wrapper">
               <span className="premium-brand">ANURANAN</span>
             </Link>
 
             {/* Desktop Navigation */}
-            <div className="hidden md:ml-10 md:flex md:space-x-1">
+            <div className="hidden md:ml-4 lg:ml-6 md:flex md:space-x-0.5 lg:space-x-1">
               {navigation.map((item) => {
                 const Icon = item.icon
                 const isActive = pathname.startsWith(item.href)
@@ -129,13 +129,13 @@ export default function Navbar({ user }: NavbarProps) {
                     key={item.name}
                     href={item.href}
                     prefetch={true}
-                    className={`inline-flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                    className={`inline-flex items-center px-2 lg:px-3 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap ${
                       isActive
                         ? 'bg-primary-50 text-primary-700'
                         : 'text-gray-700 hover:bg-gray-100'
                     }`}
                   >
-                    <Icon className="w-4 h-4 mr-2" />
+                    <Icon className="w-4 h-4 mr-1.5" />
                     {item.name}
                   </Link>
                 )
@@ -144,17 +144,46 @@ export default function Navbar({ user }: NavbarProps) {
           </div>
 
           {/* Right side - User menu */}
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center gap-1 lg:gap-2">
+            {/* External Links - Desktop */}
+            <div className="hidden md:flex items-center gap-1">
+              {/* Our Website - All users */}
+              <a
+                href="https://anuranan-institute.in/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center px-2 lg:px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors whitespace-nowrap"
+              >
+                <Globe className="w-4 h-4 mr-1.5" />
+                Our Website
+                <ExternalLink className="w-3 h-3 ml-1" />
+              </a>
+              
+              {/* Admin Portal - CEO only */}
+              {isCEO && (
+                <a
+                  href="https://anuranan-admin.onrender.com/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center px-2 lg:px-3 py-2 rounded-md text-sm font-medium text-blue-700 hover:bg-blue-50 transition-colors whitespace-nowrap"
+                >
+                  <Settings className="w-4 h-4 mr-1.5" />
+                  Admin Portal
+                  <ExternalLink className="w-3 h-3 ml-1" />
+                </a>
+              )}
+            </div>
+
             {/* User info - Desktop */}
-            <div className="hidden md:flex items-center space-x-3">
+            <div className="hidden md:flex items-center gap-2 ml-1">
               <Link
                 href="/profile"
                 prefetch={true}
-                className="flex items-center space-x-2 text-sm text-gray-700 hover:text-primary-600 transition-colors"
+                className="flex items-center gap-2 text-sm text-gray-700 hover:text-primary-600 transition-colors"
               >
-                <User className="w-5 h-5" />
-                <div className="text-right">
-                  <div className="font-medium">{user.full_name}</div>
+                <User className="w-5 h-5 flex-shrink-0" />
+                <div className="text-right min-w-0">
+                  <div className="font-medium truncate">{user.full_name}</div>
                   <div className="text-xs text-gray-500">{user.role.name}</div>
                 </div>
               </Link>
@@ -162,7 +191,7 @@ export default function Navbar({ user }: NavbarProps) {
                 variant="ghost"
                 size="sm"
                 onClick={handleLogout}
-                className="flex items-center"
+                className="flex items-center whitespace-nowrap"
               >
                 <LogOut className="w-4 h-4 mr-1" />
                 Logout
@@ -282,6 +311,48 @@ export default function Navbar({ user }: NavbarProps) {
               {/* Divider */}
               <div className="h-px bg-gray-200 my-3" />
 
+              {/* External Links Section */}
+              <div className="space-y-1">
+                {/* Our Website - All users */}
+                <a
+                  href="https://anuranan-institute.in/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center px-4 py-3.5 rounded-xl text-base font-medium text-gray-700 hover:bg-gray-50 active:bg-gray-100 transition-all duration-200"
+                  style={{
+                    animation: isClosing 
+                      ? `slideOutItem 0.3s ease-out ${navigation.length * 0.05}s forwards`
+                      : `slideInItem 0.4s ease-out ${navigation.length * 0.05}s both`
+                  }}
+                >
+                  <Globe className="w-5 h-5 mr-3 text-gray-500" />
+                  Our Website
+                  <ExternalLink className="w-4 h-4 ml-auto text-gray-400" />
+                </a>
+
+                {/* Admin Portal - CEO only */}
+                {isCEO && (
+                  <a
+                    href="https://anuranan-admin.onrender.com/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center px-4 py-3.5 rounded-xl text-base font-medium text-blue-700 hover:bg-blue-50 active:bg-blue-100 transition-all duration-200"
+                    style={{
+                      animation: isClosing 
+                        ? `slideOutItem 0.3s ease-out ${(navigation.length + 1) * 0.05}s forwards`
+                        : `slideInItem 0.4s ease-out ${(navigation.length + 1) * 0.05}s both`
+                    }}
+                  >
+                    <Settings className="w-5 h-5 mr-3 text-blue-600" />
+                    Admin Portal
+                    <ExternalLink className="w-4 h-4 ml-auto text-blue-400" />
+                  </a>
+                )}
+              </div>
+
+              {/* Divider */}
+              <div className="h-px bg-gray-200 my-3" />
+
               {/* Profile Link */}
               <Link
                 href="/profile"
@@ -290,8 +361,8 @@ export default function Navbar({ user }: NavbarProps) {
                 className="flex items-center px-4 py-3.5 rounded-xl text-base font-medium text-gray-700 hover:bg-gray-50 active:bg-gray-100 transition-all duration-200"
                 style={{
                   animation: isClosing 
-                    ? `slideOutItem 0.3s ease-out ${navigation.length * 0.05}s forwards`
-                    : `slideInItem 0.4s ease-out ${navigation.length * 0.05}s both`
+                    ? `slideOutItem 0.3s ease-out ${(navigation.length + (isCEO ? 2 : 1)) * 0.05}s forwards`
+                    : `slideInItem 0.4s ease-out ${(navigation.length + (isCEO ? 2 : 1)) * 0.05}s both`
                 }}
               >
                 <User className="w-5 h-5 mr-3 text-gray-500" />
@@ -304,21 +375,13 @@ export default function Navbar({ user }: NavbarProps) {
                 className="w-full flex items-center px-4 py-3.5 rounded-xl text-base font-medium text-red-600 hover:bg-red-50 active:bg-red-100 transition-all duration-200"
                 style={{
                   animation: isClosing 
-                    ? `slideOutItem 0.3s ease-out ${(navigation.length + 1) * 0.05}s forwards`
-                    : `slideInItem 0.4s ease-out ${(navigation.length + 1) * 0.05}s both`
+                    ? `slideOutItem 0.3s ease-out ${(navigation.length + (isCEO ? 3 : 2)) * 0.05}s forwards`
+                    : `slideInItem 0.4s ease-out ${(navigation.length + (isCEO ? 3 : 2)) * 0.05}s both`
                 }}
               >
                 <LogOut className="w-5 h-5 mr-3" />
                 Logout
               </button>
-            </div>
-
-            {/* Swipe Indicator */}
-            <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 text-center">
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 rounded-full text-xs text-gray-500">
-                <span>👉</span>
-                <span>Swipe right to close</span>
-              </div>
             </div>
           </div>
         </>
