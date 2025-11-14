@@ -9,16 +9,22 @@
 [[plugins]]
   package = "@netlify/plugin-nextjs"
 
-# CRITICAL: Force serve service worker from public directory
+# Redirect static files to API routes that serve them from public folder
 [[redirects]]
   from = "/sw.js"
-  to = "/sw.js"
+  to = "/api/sw"
   status = 200
   force = true
 
 [[redirects]]
   from = "/manifest.json"
-  to = "/manifest.json"
+  to = "/api/manifest"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/icon-:size.png"
+  to = "/api/icons/icon-:size.png"
   status = 200
   force = true
 

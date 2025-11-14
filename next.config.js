@@ -25,26 +25,6 @@ const nextConfig = {
     optimizePackageImports: ['lucide-react', 'date-fns'],
   },
   
-  // Serve static files from public directory
-  async rewrites() {
-    return {
-      beforeFiles: [
-        {
-          source: '/sw.js',
-          destination: '/sw.js',
-        },
-        {
-          source: '/manifest.json',
-          destination: '/manifest.json',
-        },
-        {
-          source: '/icon-:size.png',
-          destination: '/icon-:size.png',
-        },
-      ],
-    };
-  },
-  
   // Enable PWA support and security headers
   async headers() {
     return [
