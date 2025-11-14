@@ -1,6 +1,6 @@
 {
   "name": "Anuranan Employee Portal",
-  "short_name": "ARTI Employee Portal",
+  "short_name": "Anuranan",
   "description": "Employee management portal for Anuranan Bengali Recitation Training Institute",
   "start_url": "/",
   "display": "standalone",
