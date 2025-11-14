@@ -1,32 +1,40 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { usePathname } from 'next/navigation'
+import dynamic from 'next/dynamic'
 
 /**
  * Client-side cache manager and service worker registration
  * This component runs on the client and manages caching and PWA features
  */
-export default function ClientCacheManager() {
+function ClientCacheManagerContent() {
   const pathname = usePathname()
+  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  useEffect(() => {
+    if (!mounted) return
+
     // Register service worker for PWA and push notifications
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker
         .register('/sw.js')
         .then((registration) => {
-          console.log('Service Worker registered:', registration)
+          console.log('[ClientCacheManager] Service Worker registered:', registration)
         })
         .catch((error) => {
-          console.error('Service Worker registration failed:', error)
+          console.error('[ClientCacheManager] Service Worker registration failed:', error)
         })
     }
 
     // Enable back/forward cache (bfcache)
     if ('navigation' in window) {
       // @ts-ignore
-      window.navigation.addEventListener('navigate', (e) => {
+      window.navigation?.addEventListener('navigate', (e) => {
         // Allow the browser to use cached versions when navigating
         if (e.navigationType === 'reload' || e.navigationType === 'traverse') {
           // Use cached version for back/forward navigation
@@ -54,7 +62,12 @@ export default function ClientCacheManager() {
     const timer = setTimeout(prefetchLinks, 1000)
 
     return () => clearTimeout(timer)
-  }, [pathname])
+  }, [mounted, pathname])
 
   return null
 }
+
+// Export with no SSR to prevent hydration issues
+export default dynamic(() => Promise.resolve(ClientCacheManagerContent), {
+  ssr: false,
+})
