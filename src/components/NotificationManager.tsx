@@ -62,46 +62,66 @@ function NotificationManagerContent() {
     setLoading(true)
 
     try {
-      console.log('Starting notification setup...')
-      console.log('VAPID_PUBLIC_KEY:', VAPID_PUBLIC_KEY ? 'Set' : 'Not set')
+      console.log('[NotificationManager] Starting notification setup...')
+      console.log('[NotificationManager] VAPID_PUBLIC_KEY:', VAPID_PUBLIC_KEY ? 'Set ✅' : 'Not set ❌')
+      console.log('[NotificationManager] VAPID Key length:', VAPID_PUBLIC_KEY?.length || 0)
+      console.log('[NotificationManager] First 20 chars:', VAPID_PUBLIC_KEY?.substring(0, 20) || 'N/A')
       
-      // Check if service worker is registered
+      // Check if service worker is registered with timeout
       if (!navigator.serviceWorker.controller) {
-        console.log('Service worker not active, waiting for registration...')
-        await navigator.serviceWorker.ready
-        console.log('Service worker is now ready')
+        console.log('[NotificationManager] Service worker not active, waiting for registration...')
+        
+        // Add timeout to prevent infinite waiting
+        const timeout = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Service worker registration timeout after 10 seconds')), 10000)
+        )
+        
+        try {
+          await Promise.race([navigator.serviceWorker.ready, timeout])
+          console.log('[NotificationManager] Service worker is now ready ✅')
+        } catch (error) {
+          console.error('[NotificationManager] Service worker failed to become ready:', error)
+          throw new Error('Service worker is not available. Please refresh the page and try again.')
+        }
+      } else {
+        console.log('[NotificationManager] Service worker already active ✅')
       }
       
       // Request permission
+      console.log('[NotificationManager] Requesting notification permission...')
       const perm = await requestNotificationPermission()
-      console.log('Permission result:', perm)
+      console.log('[NotificationManager] Permission result:', perm)
       setPermission(perm)
 
       if (perm !== 'granted') {
+        console.warn('[NotificationManager] Permission denied by user')
         alert('Notification permission denied. Please allow notifications in your browser settings.')
         setLoading(false)
         return
       }
 
       if (!VAPID_PUBLIC_KEY) {
-        console.error('VAPID_PUBLIC_KEY is not set')
-        alert('VAPID public key not configured. Please restart the development server and try again.')
+        console.error('[NotificationManager] VAPID_PUBLIC_KEY is not set in environment')
+        alert('VAPID public key not configured. Please contact the administrator.')
         setLoading(false)
         return
       }
 
-      console.log('Subscribing to push notifications...')
+      console.log('[NotificationManager] Subscribing to push notifications...')
       // Subscribe to push notifications
       const subscription = await subscribeToPushNotifications(VAPID_PUBLIC_KEY)
-      console.log('Subscription:', subscription)
+      console.log('[NotificationManager] Subscription result:', subscription ? 'Success ✅' : 'Failed ❌')
 
       if (!subscription) {
+        console.error('[NotificationManager] subscribeToPushNotifications returned null')
         alert('Failed to subscribe to push notifications. Please check the browser console for details.')
         setLoading(false)
         return
       }
 
-      console.log('Sending subscription to server...')
+      console.log('[NotificationManager] Sending subscription to server...')
+      console.log('[NotificationManager] Subscription endpoint:', subscription.endpoint)
+      
       // Send subscription to server
       const response = await fetch('/api/notifications/subscribe', {
         method: 'POST',
@@ -111,16 +131,17 @@ function NotificationManagerContent() {
         body: JSON.stringify({ subscription }),
       })
 
-      console.log('Server response status:', response.status)
+      console.log('[NotificationManager] Server response status:', response.status)
+      console.log('[NotificationManager] Server response ok:', response.ok)
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
-        console.error('Server error:', errorData)
+        console.error('[NotificationManager] Server error:', errorData)
         
         // If unauthorized, subscription is created but not saved to server yet
         // This is fine - it will be saved when user logs in next time
         if (response.status === 401) {
-          console.warn('User not authenticated. Subscription created locally but not saved to server.')
+          console.warn('[NotificationManager] User not authenticated. Subscription created locally but not saved to server.')
           setSubscribed(true)
           setShowBanner(false)
           
@@ -137,23 +158,28 @@ function NotificationManagerContent() {
       }
 
       const responseData = await response.json()
-      console.log('Server response:', responseData)
+      console.log('[NotificationManager] Server response data:', responseData)
 
       setSubscribed(true)
       setShowBanner(false)
 
-      console.log('Showing test notification...')
+      console.log('[NotificationManager] Showing test notification...')
       // Show a test notification
       await showLocalNotification('Notifications Enabled!', {
         body: 'You will now receive task reminders',
         icon: '/icon-192.png',
       })
       
-      console.log('Notification setup complete!')
+      console.log('[NotificationManager] ✅ Notification setup complete!')
     } catch (error) {
-      console.error('Error enabling notifications:', error)
-      alert(`Failed to enable notifications: ${error instanceof Error ? error.message : 'Unknown error'}. Check browser console for details.`)
+      console.error('[NotificationManager] ❌ Error enabling notifications:', error)
+      console.error('[NotificationManager] Error stack:', error instanceof Error ? error.stack : 'No stack trace')
+      
+      // Show detailed error message
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      alert(`Failed to enable notifications:\n\n${errorMessage}\n\nPlease check the browser console for more details.`)
     } finally {
+      console.log('[NotificationManager] Cleaning up, setting loading to false')
       setLoading(false)
     }
   }

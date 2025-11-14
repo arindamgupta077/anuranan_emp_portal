@@ -70,25 +70,43 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
 export async function subscribeToPushNotifications(
   publicVapidKey: string
 ): Promise<PushSubscriptionData | null> {
+  console.log('[subscribeToPushNotifications] Starting...')
+  console.log('[subscribeToPushNotifications] VAPID key length:', publicVapidKey?.length || 0)
+  
   if (!isPushNotificationSupported()) {
+    console.error('[subscribeToPushNotifications] Push notifications not supported')
     throw new Error('Push notifications are not supported')
   }
 
+  console.log('[subscribeToPushNotifications] Waiting for service worker to be ready...')
   const registration = await navigator.serviceWorker.ready
+  console.log('[subscribeToPushNotifications] Service worker ready, scope:', registration.scope)
   
   try {
+    console.log('[subscribeToPushNotifications] Converting VAPID key...')
     const convertedKey = urlBase64ToUint8Array(publicVapidKey)
+    console.log('[subscribeToPushNotifications] VAPID key converted, length:', convertedKey.length)
+    
+    console.log('[subscribeToPushNotifications] Calling pushManager.subscribe...')
     const subscription = await registration.pushManager.subscribe({
       userVisibleOnly: true,
       applicationServerKey: convertedKey as BufferSource,
     })
+    console.log('[subscribeToPushNotifications] Subscription created successfully')
 
     const subscriptionJSON = subscription.toJSON()
+    console.log('[subscribeToPushNotifications] Subscription JSON:', {
+      hasEndpoint: !!subscriptionJSON.endpoint,
+      hasKeys: !!subscriptionJSON.keys,
+      endpointDomain: subscriptionJSON.endpoint?.split('/')[2]
+    })
     
     if (!subscriptionJSON.endpoint || !subscriptionJSON.keys) {
+      console.error('[subscribeToPushNotifications] Invalid subscription - missing endpoint or keys')
       throw new Error('Invalid subscription')
     }
 
+    console.log('[subscribeToPushNotifications] ✅ Subscription successful')
     return {
       endpoint: subscriptionJSON.endpoint,
       keys: {
@@ -97,7 +115,12 @@ export async function subscribeToPushNotifications(
       },
     }
   } catch (error) {
-    console.error('Failed to subscribe to push notifications:', error)
+    console.error('[subscribeToPushNotifications] ❌ Failed to subscribe:', error)
+    console.error('[subscribeToPushNotifications] Error details:', {
+      name: error instanceof Error ? error.name : 'Unknown',
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : 'No stack'
+    })
     return null
   }
 }
