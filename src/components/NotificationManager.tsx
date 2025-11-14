@@ -17,6 +17,7 @@ import {
 const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || ''
 
 export default function NotificationManager() {
+  const [mounted, setMounted] = useState(false)
   const [supported, setSupported] = useState(false)
   const [permission, setPermission] = useState<NotificationPermission>('default')
   const [subscribed, setSubscribed] = useState(false)
@@ -24,6 +25,7 @@ export default function NotificationManager() {
   const [showBanner, setShowBanner] = useState(false)
 
   useEffect(() => {
+    setMounted(true)
     checkNotificationStatus()
   }, [])
 
@@ -176,7 +178,7 @@ export default function NotificationManager() {
     }
   }
 
-  if (!supported) {
+  if (!mounted || !supported) {
     return null
   }
 
