@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import dynamic from 'next/dynamic'
 import { Bell, BellOff, X } from 'lucide-react'
 import {
   isPushNotificationSupported,
@@ -16,8 +17,7 @@ import {
 // Add the public key to .env.local as NEXT_PUBLIC_VAPID_PUBLIC_KEY
 const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || ''
 
-export default function NotificationManager() {
-  const [mounted, setMounted] = useState(false)
+function NotificationManagerContent() {
   const [supported, setSupported] = useState(false)
   const [permission, setPermission] = useState<NotificationPermission>('default')
   const [subscribed, setSubscribed] = useState(false)
@@ -25,12 +25,18 @@ export default function NotificationManager() {
   const [showBanner, setShowBanner] = useState(false)
 
   useEffect(() => {
-    setMounted(true)
+    // Only run on client
+    if (typeof window === 'undefined') return
+    
+    console.log('[NotificationManager] Component mounted')
+    console.log('[NotificationManager] VAPID Key available:', !!VAPID_PUBLIC_KEY)
     checkNotificationStatus()
   }, [])
 
   async function checkNotificationStatus() {
+    console.log('[NotificationManager] Checking notification status...')
     const state = await getNotificationPermissionState()
+    console.log('[NotificationManager] Support:', state.supported, 'Permission:', state.permission)
     setSupported(state.supported)
     setPermission(state.permission)
 
@@ -178,7 +184,7 @@ export default function NotificationManager() {
     }
   }
 
-  if (!mounted || !supported) {
+  if (!supported) {
     return null
   }
 
@@ -254,3 +260,8 @@ export default function NotificationManager() {
     </>
   )
 }
+
+// Export with no SSR to prevent hydration issues
+export default dynamic(() => Promise.resolve(NotificationManagerContent), {
+  ssr: false,
+})
