@@ -4,13 +4,25 @@ import { useEffect } from 'react'
 import { usePathname } from 'next/navigation'
 
 /**
- * Client-side cache manager to prevent unnecessary loading states
- * This component runs on the client and tells the browser to cache pages aggressively
+ * Client-side cache manager and service worker registration
+ * This component runs on the client and manages caching and PWA features
  */
 export default function ClientCacheManager() {
   const pathname = usePathname()
 
   useEffect(() => {
+    // Register service worker for PWA and push notifications
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker
+        .register('/sw.js')
+        .then((registration) => {
+          console.log('Service Worker registered:', registration)
+        })
+        .catch((error) => {
+          console.error('Service Worker registration failed:', error)
+        })
+    }
+
     // Enable back/forward cache (bfcache)
     if ('navigation' in window) {
       // @ts-ignore

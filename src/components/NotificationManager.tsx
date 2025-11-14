@@ -52,31 +52,38 @@ export default function NotificationManager() {
     setLoading(true)
 
     try {
+      console.log('Starting notification setup...')
+      
       // Request permission
       const perm = await requestNotificationPermission()
+      console.log('Permission result:', perm)
       setPermission(perm)
 
       if (perm !== 'granted') {
-        alert('Notification permission denied')
+        alert('Notification permission denied. Please allow notifications in your browser settings.')
         setLoading(false)
         return
       }
 
       if (!VAPID_PUBLIC_KEY) {
+        console.error('VAPID_PUBLIC_KEY is not set')
         alert('VAPID public key not configured. Please set NEXT_PUBLIC_VAPID_PUBLIC_KEY in environment variables.')
         setLoading(false)
         return
       }
 
+      console.log('Subscribing to push notifications...')
       // Subscribe to push notifications
       const subscription = await subscribeToPushNotifications(VAPID_PUBLIC_KEY)
+      console.log('Subscription:', subscription)
 
       if (!subscription) {
-        alert('Failed to subscribe to push notifications')
+        alert('Failed to subscribe to push notifications. Check console for details.')
         setLoading(false)
         return
       }
 
+      console.log('Sending subscription to server...')
       // Send subscription to server
       const response = await fetch('/api/notifications/subscribe', {
         method: 'POST',
@@ -86,21 +93,31 @@ export default function NotificationManager() {
         body: JSON.stringify({ subscription }),
       })
 
+      console.log('Server response status:', response.status)
+      
       if (!response.ok) {
-        throw new Error('Failed to save subscription')
+        const errorData = await response.json()
+        console.error('Server error:', errorData)
+        throw new Error(`Failed to save subscription: ${errorData.error || response.statusText}`)
       }
+
+      const responseData = await response.json()
+      console.log('Server response:', responseData)
 
       setSubscribed(true)
       setShowBanner(false)
 
+      console.log('Showing test notification...')
       // Show a test notification
       await showLocalNotification('Notifications Enabled!', {
         body: 'You will now receive task reminders',
         icon: '/icon-192.png',
       })
+      
+      console.log('Notification setup complete!')
     } catch (error) {
       console.error('Error enabling notifications:', error)
-      alert('Failed to enable notifications. Please try again.')
+      alert(`Failed to enable notifications: ${error instanceof Error ? error.message : 'Unknown error'}. Check browser console for details.`)
     } finally {
       setLoading(false)
     }

@@ -17,6 +17,12 @@ CREATE INDEX IF NOT EXISTS idx_push_subscriptions_user_id ON push_subscriptions(
 -- Enable RLS
 ALTER TABLE push_subscriptions ENABLE ROW LEVEL SECURITY;
 
+-- Drop existing policies if they exist (to avoid conflicts)
+DROP POLICY IF EXISTS "Users can view their own subscriptions" ON push_subscriptions;
+DROP POLICY IF EXISTS "Users can insert their own subscriptions" ON push_subscriptions;
+DROP POLICY IF EXISTS "Users can update their own subscriptions" ON push_subscriptions;
+DROP POLICY IF EXISTS "Users can delete their own subscriptions" ON push_subscriptions;
+
 -- Create policy for users to manage their own subscriptions
 CREATE POLICY "Users can view their own subscriptions"
   ON push_subscriptions
@@ -46,6 +52,9 @@ BEGIN
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
+
+-- Drop existing trigger if it exists
+DROP TRIGGER IF EXISTS update_push_subscriptions_updated_at ON push_subscriptions;
 
 -- Create trigger to automatically update updated_at
 CREATE TRIGGER update_push_subscriptions_updated_at
