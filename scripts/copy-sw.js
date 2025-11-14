@@ -1,35 +1,30 @@
 const fs = require('fs');
 const path = require('path');
 
-// Copy service worker to .next/static for Netlify deployment
-const swSource = path.join(__dirname, '../public/sw.js');
-const swDest = path.join(__dirname, '../.next/static/sw.js');
-const manifestSource = path.join(__dirname, '../public/manifest.json');
-const manifestDest = path.join(__dirname, '../.next/static/manifest.json');
-
+// Netlify with Next.js plugin automatically copies public/ to the output
+// This script ensures files are accessible from root URL
 try {
-  // Ensure .next/static directory exists
-  const staticDir = path.join(__dirname, '../.next/static');
-  if (!fs.existsSync(staticDir)) {
-    fs.mkdirSync(staticDir, { recursive: true });
-  }
-
-  // Copy service worker
+  const swSource = path.join(__dirname, '../public/sw.js');
+  const manifestSource = path.join(__dirname, '../public/manifest.json');
+  
+  // Verify files exist
   if (fs.existsSync(swSource)) {
-    fs.copyFileSync(swSource, swDest);
-    console.log('✓ Service worker copied to .next/static/');
+    console.log('✓ Service worker found in public/');
   } else {
     console.error('✗ Service worker not found at', swSource);
+    process.exit(1);
   }
 
-  // Copy manifest
   if (fs.existsSync(manifestSource)) {
-    fs.copyFileSync(manifestSource, manifestDest);
-    console.log('✓ Manifest copied to .next/static/');
+    console.log('✓ Manifest found in public/');
   } else {
     console.error('✗ Manifest not found at', manifestSource);
+    process.exit(1);
   }
+  
+  console.log('✓ All PWA files ready for deployment');
+  console.log('  Files in public/ will be served by Netlify at root URL');
 } catch (error) {
-  console.error('Error copying files:', error);
+  console.error('Error verifying files:', error);
   process.exit(1);
 }

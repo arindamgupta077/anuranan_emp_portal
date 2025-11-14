@@ -9,17 +9,6 @@
 [[plugins]]
   package = "@netlify/plugin-nextjs"
 
-# Serve service worker and manifest from static directory
-[[redirects]]
-  from = "/sw.js"
-  to = "/_next/static/sw.js"
-  status = 200
-
-[[redirects]]
-  from = "/manifest.json"
-  to = "/_next/static/manifest.json"
-  status = 200
-
 # Headers for manifest and service worker
 [[headers]]
   for = "/manifest.json"

@@ -18,6 +18,7 @@ import {
 const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || ''
 
 function NotificationManagerContent() {
+  const [mounted, setMounted] = useState(false)
   const [supported, setSupported] = useState(false)
   const [permission, setPermission] = useState<NotificationPermission>('default')
   const [subscribed, setSubscribed] = useState(false)
@@ -28,6 +29,7 @@ function NotificationManagerContent() {
     // Only run on client
     if (typeof window === 'undefined') return
     
+    setMounted(true)
     console.log('[NotificationManager] Component mounted')
     console.log('[NotificationManager] VAPID Key available:', !!VAPID_PUBLIC_KEY)
     checkNotificationStatus()
@@ -184,7 +186,8 @@ function NotificationManagerContent() {
     }
   }
 
-  if (!supported) {
+  // Don't render until mounted to prevent hydration errors
+  if (!mounted || !supported) {
     return null
   }
 
