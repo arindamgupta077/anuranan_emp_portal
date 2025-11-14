@@ -5,13 +5,9 @@
 [functions]
   directory = "netlify/functions"
 
-# Next.js plugin configuration - must be FIRST
+# Next.js plugin configuration
 [[plugins]]
   package = "@netlify/plugin-nextjs"
-
-# Custom plugin to copy public files
-[[plugins]]
-  package = "./netlify/plugins/copy-public-files"
 
 # Headers for manifest and service worker
 [[headers]]
