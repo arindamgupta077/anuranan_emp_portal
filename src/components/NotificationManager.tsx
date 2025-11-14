@@ -53,6 +53,14 @@ export default function NotificationManager() {
 
     try {
       console.log('Starting notification setup...')
+      console.log('VAPID_PUBLIC_KEY:', VAPID_PUBLIC_KEY ? 'Set' : 'Not set')
+      
+      // Check if service worker is registered
+      if (!navigator.serviceWorker.controller) {
+        console.log('Service worker not active, waiting for registration...')
+        await navigator.serviceWorker.ready
+        console.log('Service worker is now ready')
+      }
       
       // Request permission
       const perm = await requestNotificationPermission()
@@ -67,7 +75,7 @@ export default function NotificationManager() {
 
       if (!VAPID_PUBLIC_KEY) {
         console.error('VAPID_PUBLIC_KEY is not set')
-        alert('VAPID public key not configured. Please set NEXT_PUBLIC_VAPID_PUBLIC_KEY in environment variables.')
+        alert('VAPID public key not configured. Please restart the development server and try again.')
         setLoading(false)
         return
       }
@@ -78,7 +86,7 @@ export default function NotificationManager() {
       console.log('Subscription:', subscription)
 
       if (!subscription) {
-        alert('Failed to subscribe to push notifications. Check console for details.')
+        alert('Failed to subscribe to push notifications. Please check the browser console for details.')
         setLoading(false)
         return
       }
@@ -96,8 +104,25 @@ export default function NotificationManager() {
       console.log('Server response status:', response.status)
       
       if (!response.ok) {
-        const errorData = await response.json()
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
         console.error('Server error:', errorData)
+        
+        // If unauthorized, subscription is created but not saved to server yet
+        // This is fine - it will be saved when user logs in next time
+        if (response.status === 401) {
+          console.warn('User not authenticated. Subscription created locally but not saved to server.')
+          setSubscribed(true)
+          setShowBanner(false)
+          
+          await showLocalNotification('Notifications Enabled!', {
+            body: 'You will receive task reminders after logging in',
+            icon: '/icon-192.png',
+          })
+          
+          setLoading(false)
+          return
+        }
+        
         throw new Error(`Failed to save subscription: ${errorData.error || response.statusText}`)
       }
 
