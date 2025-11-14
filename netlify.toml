@@ -9,38 +9,18 @@
 [[plugins]]
   package = "@netlify/plugin-nextjs"
 
-# Redirect static files to API routes that serve them from public folder
-[[redirects]]
-  from = "/sw.js"
-  to = "/api/sw"
-  status = 200
-  force = true
-
-[[redirects]]
-  from = "/manifest.json"
-  to = "/api/manifest"
-  status = 200
-  force = true
-
-[[redirects]]
-  from = "/icon-:size.png"
-  to = "/api/icons/icon-:size.png"
-  status = 200
-  force = true
-
 # Headers for manifest and service worker
-[[headers]]
-  for = "/sw.js"
-  [headers.values]
-    Content-Type = "application/javascript"
-    Cache-Control = "no-cache"
-    Service-Worker-Allowed = "/"
-
 [[headers]]
   for = "/manifest.json"
   [headers.values]
     Content-Type = "application/manifest+json"
     Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Content-Type = "application/javascript"
+    Cache-Control = "public, max-age=0, must-revalidate"
 
 # Prevent caching of authenticated pages
 [[headers]]
